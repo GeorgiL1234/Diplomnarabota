@@ -1,11 +1,10 @@
-package com.example.web.shop.config;
-
-package com.example.webshop.security;
+package com.example.webshop.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,9 +13,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
-public class JwtFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -24,22 +24,32 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
 
         String email = null;
-        String jwtToken = null;
+        String token = null;
 
+        // очакваме: Authorization: Bearer <jwt>
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwtToken = authHeader.substring(7);
-            email = jwtUtil.extractEmail(jwtToken);
+            token = authHeader.substring(7);
+
+            try {
+                email = jwtUtil.extractEmail(token);
+            } catch (Exception ignored) {
+            }
         }
 
-        if (email != null && jwtUtil.isTokenValid(jwtToken)) {
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, null, null);
+        // ако имаме email и няма Authentication — създаваме фалшив user (без роли)
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, null,
+                    Collections.emptyList());
+
+            authToken.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }
