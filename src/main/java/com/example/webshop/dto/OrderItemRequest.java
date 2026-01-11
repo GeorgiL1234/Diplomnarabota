@@ -2,18 +2,24 @@ package com.example.webshop.dto;
 
 public class OrderItemRequest {
 
-    private Long itemId;
+    private String productName;
+    private double price;
     private int quantity;
 
-    public OrderItemRequest() {
+    public String getProductName() {
+        return productName;
     }
 
-    public Long getItemId() {
-        return itemId;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
-    public void setItemId(Long itemId) {
-        this.itemId = itemId;
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
     }
 
     public int getQuantity() {

@@ -1,16 +1,15 @@
 package com.example.webshop.controllers;
 
-import com.example.webshop.dto.OrderRequest;
+import com.example.webshop.dto.CreateOrderRequest;
 import com.example.webshop.models.Order;
+import com.example.webshop.models.OrderStatus;
 import com.example.webshop.services.OrderService;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
-@CrossOrigin(origins = "*")
 public class OrderController {
 
     private final OrderService orderService;
@@ -19,20 +18,23 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    // CREATE ORDER (checkout)
+    // CREATE ORDER
     @PostMapping
-    public Order createOrder(@RequestBody OrderRequest request,
-            Authentication authentication) {
-
-        String userEmail = authentication.getName();
-        return orderService.createOrder(userEmail, request);
+    public Order createOrder(@RequestBody CreateOrderRequest request) {
+        return orderService.createOrder(request);
     }
 
-    // GET MY ORDERS
+    // GET ALL ORDERS
     @GetMapping
-    public List<Order> myOrders(Authentication authentication) {
+    public List<Order> getAll() {
+        return orderService.getAllOrders();
+    }
 
-        String userEmail = authentication.getName();
-        return orderService.getOrdersForUser(userEmail);
+    // UPDATE ORDER STATUS
+    @PutMapping("/{id}/status")
+    public Order updateStatus(
+            @PathVariable Long id,
+            @RequestParam OrderStatus status) {
+        return orderService.updateStatus(id, status);
     }
 }

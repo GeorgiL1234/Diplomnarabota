@@ -2,6 +2,7 @@ package com.example.webshop.models;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -12,62 +13,28 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // кой потребител е направил поръчката
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    // всички продукти в поръчката
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> items;
+    private String customerEmail;
+    private double totalPrice;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    private double totalPrice;
-
     private LocalDateTime createdAt;
 
-    public Order() {
-        this.createdAt = LocalDateTime.now();
-        this.status = OrderStatus.CREATED;
-    }
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items = new ArrayList<>();
 
-    public Order(User user, double totalPrice) {
-        this.user = user;
-        this.totalPrice = totalPrice;
-        this.createdAt = LocalDateTime.now();
-        this.status = OrderStatus.CREATED;
-    }
-
-    // GETTERS & SETTERS
-
+    // getters & setters
     public Long getId() {
         return id;
     }
 
-    public User getUser() {
-        return user;
+    public String getCustomerEmail() {
+        return customerEmail;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public List<OrderItem> getItems() {
-        return items;
-    }
-
-    public void setItems(List<OrderItem> items) {
-        this.items = items;
-    }
-
-    public OrderStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(OrderStatus status) {
-        this.status = status;
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     public double getTotalPrice() {
@@ -78,7 +45,27 @@ public class Order {
         this.totalPrice = totalPrice;
     }
 
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public List<OrderItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<OrderItem> items) {
+        this.items = items;
     }
 }

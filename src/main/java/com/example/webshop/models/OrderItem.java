@@ -1,57 +1,42 @@
 package com.example.webshop.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "order_items")
 public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id")
-    private Order order;
-
-    @ManyToOne
-    @JoinColumn(name = "item_id")
-    private Item item;
-
+    private String productName;
+    private double price;
     private int quantity;
 
-    private double price; // цена * quantity
-
-    public OrderItem() {
-    }
-
-    public OrderItem(Order order, Item item, int quantity, double price) {
-        this.order = order;
-        this.item = item;
-        this.quantity = quantity;
-        this.price = price;
-    }
-
-    // GETTERS & SETTERS
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    @JsonIgnore
+    private Order order;
 
     public Long getId() {
         return id;
     }
 
-    public Order getOrder() {
-        return order;
+    public String getProductName() {
+        return productName;
     }
 
-    public void setOrder(Order order) {
-        this.order = order;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
-    public Item getItem() {
-        return item;
+    public double getPrice() {
+        return price;
     }
 
-    public void setItem(Item item) {
-        this.item = item;
+    public void setPrice(double price) {
+        this.price = price;
     }
 
     public int getQuantity() {
@@ -62,11 +47,11 @@ public class OrderItem {
         this.quantity = quantity;
     }
 
-    public double getPrice() {
-        return price;
+    public Order getOrder() {
+        return order;
     }
 
-    public void setPrice(double price) {
-        this.price = price;
+    public void setOrder(Order order) {
+        this.order = order;
     }
 }

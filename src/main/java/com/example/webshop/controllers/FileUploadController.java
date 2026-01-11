@@ -2,44 +2,47 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/files")
+@RequestMapping("/upload")
+@CrossOrigin(origins = "*")
 public class FileUploadController {
-
-    @Autowired
-    private ItemRepository itemRepository;
 
     private static final String UPLOAD_DIR = "uploads/";
 
-    @PostMapping("/upload/{itemId}")
-    public String uploadImage(@PathVariable Long itemId,
-            @RequestParam("image") MultipartFile file) throws IOException {
+    private final ItemRepository itemRepository;
 
-        Item item = itemRepository.findById(itemId).orElse(null);
+    public FileUploadController(ItemRepository itemRepository) {
+        this.itemRepository = itemRepository;
+    }
 
-        if (item == null) {
-            return "Item not found!";
+    @PostMapping("/{itemId}")
+    public String uploadImage(
+            @PathVariable Long itemId,
+            @RequestParam("file") MultipartFile file) throws IOException {
+
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Item not found"));
+
+        File uploadDir = new File(UPLOAD_DIR);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs();
         }
 
         String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        File destination = new File(UPLOAD_DIR + fileName);
 
-        File uploadPath = new File(UPLOAD_DIR);
-        if (!uploadPath.exists())
-            uploadPath.mkdirs();
-
-        File dest = new File(UPLOAD_DIR + fileName);
-        file.transferTo(dest);
+        file.transferTo(destination);
 
         item.setImageUrl("/uploads/" + fileName);
         itemRepository.save(item);
 
-        return "Image uploaded!";
+        return "UPLOAD_OK";
     }
 }

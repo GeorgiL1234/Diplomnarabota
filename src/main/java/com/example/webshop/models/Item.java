@@ -1,6 +1,7 @@
 package com.example.webshop.models;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 public class Item {
@@ -12,24 +13,12 @@ public class Item {
     private String title;
     private String description;
     private double price;
+    private String imageUrl;
 
-    private String ownerUsername; // потребителят, който е публикувал обявата
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Review> reviews;
 
-    private String imageUrl; // URL на снимката
-
-    public Item() {
-    }
-
-    public Item(String title, String description, double price, String ownerUsername, String imageUrl) {
-        this.title = title;
-        this.description = description;
-        this.price = price;
-        this.ownerUsername = ownerUsername;
-        this.imageUrl = imageUrl;
-    }
-
-    // Getters & Setters
-
+    // getters & setters
     public Long getId() {
         return id;
     }
@@ -56,14 +45,6 @@ public class Item {
 
     public void setPrice(double price) {
         this.price = price;
-    }
-
-    public String getOwnerUsername() {
-        return ownerUsername;
-    }
-
-    public void setOwnerUsername(String ownerUsername) {
-        this.ownerUsername = ownerUsername;
     }
 
     public String getImageUrl() {
