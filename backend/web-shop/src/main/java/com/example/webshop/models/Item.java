@@ -1,8 +1,11 @@
 package com.example.webshop.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Item {
 
     @Id
@@ -12,24 +15,33 @@ public class Item {
     private String title;
     private String description;
     private double price;
+    
+    @Column(length = 1000)
+    private String imageUrl;
 
-    private String ownerUsername; // потребителят, който е публикувал обявата
+    // За фронтенд разделяне на "обяви" и "моите обяви"
+    @Column(nullable = true)
+    private String ownerEmail;
 
-    private String imageUrl; // URL на снимката
+    // Категория на обявата (примерно: ELECTRONICS, BOOKS, CLOTHES...)
+    @Column(nullable = true)
+    private String category;
 
-    public Item() {
-    }
+    // Контакт за връзка с продавача (задължително поне едно от двете)
+    @Column(nullable = true)
+    private String contactEmail;
 
-    public Item(String title, String description, double price, String ownerUsername, String imageUrl) {
-        this.title = title;
-        this.description = description;
-        this.price = price;
-        this.ownerUsername = ownerUsername;
-        this.imageUrl = imageUrl;
-    }
+    @Column(nullable = true)
+    private String contactPhone;
 
-    // Getters & Setters
+    // VIP статус - обявите с VIP се показват първи
+    @Column(nullable = false)
+    private Boolean isVip = false;
 
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Review> reviews;
+
+    // getters & setters
     public Long getId() {
         return id;
     }
@@ -58,19 +70,51 @@ public class Item {
         this.price = price;
     }
 
-    public String getOwnerUsername() {
-        return ownerUsername;
-    }
-
-    public void setOwnerUsername(String ownerUsername) {
-        this.ownerUsername = ownerUsername;
-    }
-
     public String getImageUrl() {
         return imageUrl;
     }
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getOwnerEmail() {
+        return ownerEmail;
+    }
+
+    public void setOwnerEmail(String ownerEmail) {
+        this.ownerEmail = ownerEmail;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public Boolean getIsVip() {
+        return isVip != null ? isVip : false;
+    }
+
+    public void setIsVip(Boolean isVip) {
+        this.isVip = isVip != null ? isVip : false;
     }
 }

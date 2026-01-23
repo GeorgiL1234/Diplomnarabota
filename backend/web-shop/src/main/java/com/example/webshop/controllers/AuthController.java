@@ -1,66 +1,48 @@
 package com.example.webshop.controllers;
 
-import com.example.webshop.config.JwtUtil;
 import com.example.webshop.models.User;
-import com.example.webshop.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.webshop.services.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "*")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+    private final UserService userService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private AuthenticationManager authManager;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    // REGISTER
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Email already exists");
-        }
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-
-        return ResponseEntity.ok("User registered successfully");
+    public AuthController(UserService userService) {
+        this.userService = userService;
     }
 
-    // LOGIN
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User loginUser) {
-
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody User user) {
         try {
-            authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginUser.getEmail(),
-                            loginUser.getPassword()));
-
-            String token = jwtUtil.generateToken(loginUser.getEmail());
-
-            return ResponseEntity.ok(token);
-
+            logger.info("Register attempt for email: {}", user.getEmail());
+            userService.register(user.getEmail(), user.getPassword(), user.getFullName());
+            logger.info("Registration successful for email: {}", user.getEmail());
+            return ResponseEntity.ok("REGISTER_OK");
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password");
+            logger.error("Registration failed for email: {}", user.getEmail(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody User user) {
+        try {
+            logger.info("Login attempt for email: {}", user.getEmail());
+            userService.login(user.getEmail(), user.getPassword());
+            logger.info("Login successful for email: {}", user.getEmail());
+            return ResponseEntity.ok("LOGIN_OK");
+        } catch (Exception e) {
+            logger.error("Login failed for email: {}", user.getEmail(), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         }
     }
 }

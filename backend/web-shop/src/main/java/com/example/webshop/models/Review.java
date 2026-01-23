@@ -3,50 +3,36 @@ package com.example.webshop.models;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "reviews")
 public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String reviewerUsername; // кой оставя оценката
-    private String sellerUsername; // на кого е оценката
+    @Column(nullable = false)
+    private String authorEmail;
 
-    private int rating; // 1–5 звезди
+    @Column(nullable = false)
+    private int rating;
 
     @Column(length = 1000)
     private String comment;
 
-    public Review() {
-    }
-
-    public Review(String reviewerUsername, String sellerUsername, int rating, String comment) {
-        this.reviewerUsername = reviewerUsername;
-        this.sellerUsername = sellerUsername;
-        this.rating = rating;
-        this.comment = comment;
-    }
-
-    // Getters and Setters
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "item_id")
+    private Item item;
 
     public Long getId() {
         return id;
     }
 
-    public String getReviewerUsername() {
-        return reviewerUsername;
+    public String getAuthorEmail() {
+        return authorEmail;
     }
 
-    public void setReviewerUsername(String reviewerUsername) {
-        this.reviewerUsername = reviewerUsername;
-    }
-
-    public String getSellerUsername() {
-        return sellerUsername;
-    }
-
-    public void setSellerUsername(String sellerUsername) {
-        this.sellerUsername = sellerUsername;
+    public void setAuthorEmail(String authorEmail) {
+        this.authorEmail = authorEmail;
     }
 
     public int getRating() {
@@ -63,5 +49,13 @@ public class Review {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public Item getItem() {
+        return item;
+    }
+
+    public void setItem(Item item) {
+        this.item = item;
     }
 }

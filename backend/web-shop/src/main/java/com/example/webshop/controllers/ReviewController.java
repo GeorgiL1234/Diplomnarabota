@@ -2,33 +2,32 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Review;
 import com.example.webshop.services.ReviewService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/reviews")
+@RequestMapping("/items")
+@CrossOrigin(origins = "*")
 public class ReviewController {
 
-    @Autowired
-    private ReviewService reviewService;
+    private final ReviewService reviewService;
 
-    // Оставяне на оценка
-    @PostMapping("/add")
-    public Review addReview(@RequestBody Review review) {
-        return reviewService.leaveReview(review);
+    public ReviewController(ReviewService reviewService) {
+        this.reviewService = reviewService;
     }
 
-    // Всички оценки на конкретен продавач
-    @GetMapping("/{sellerUsername}")
-    public List<Review> getSellerReviews(@PathVariable String sellerUsername) {
-        return reviewService.getReviewsForSeller(sellerUsername);
+    // CREATE REVIEW (UTF-8 FIX)
+    @PostMapping(value = "/{itemId}/reviews", consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
+    public Review addReview(
+            @PathVariable Long itemId,
+            @RequestBody Review review) {
+        return reviewService.addReview(itemId, review);
     }
 
-    // Средна оценка на продавача
-    @GetMapping("/avg/{sellerUsername}")
-    public double getAverageRating(@PathVariable String sellerUsername) {
-        return reviewService.getAverageRating(sellerUsername);
+    // GET REVIEWS FOR ITEM
+    @GetMapping(value = "/{itemId}/reviews", produces = "application/json;charset=UTF-8")
+    public List<Review> getReviews(@PathVariable Long itemId) {
+        return reviewService.getReviewsForItem(itemId);
     }
 }

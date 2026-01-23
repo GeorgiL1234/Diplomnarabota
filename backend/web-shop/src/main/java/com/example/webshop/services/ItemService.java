@@ -2,57 +2,66 @@ package com.example.webshop.services;
 
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 public class ItemService {
 
-    @Autowired
-    private ItemRepository itemRepository;
+    private final ItemRepository itemRepository;
 
-    // Методът, който твоят ItemController очаква:
+    public ItemService(ItemRepository itemRepository) {
+        this.itemRepository = itemRepository;
+    }
+
+    @Transactional
     public Item create(Item item) {
-        return itemRepository.save(item);
+        // Валидация: поне email или телефон трябва да е попълнен
+        if ((item.getContactEmail() == null || item.getContactEmail().trim().isEmpty()) &&
+            (item.getContactPhone() == null || item.getContactPhone().trim().isEmpty())) {
+            throw new RuntimeException("Трябва да посочите поне email или телефон за контакт");
+        }
+        // saveAndFlush() принудително записва в базата данни веднага
+        return itemRepository.saveAndFlush(item);
     }
 
-    // Старият метод (може да остане, не пречи)
-    public Item createItem(Item item) {
-        return itemRepository.save(item);
-    }
-
-    // Методът, който ItemController очаква:
     public List<Item> getAll() {
-        return itemRepository.findAll();
+        // Сортираме обявите: VIP първо, след това останалите
+        List<Item> allItems = itemRepository.findAll();
+        allItems.sort((a, b) -> {
+            boolean aVip = a.getIsVip() != null && a.getIsVip();
+            boolean bVip = b.getIsVip() != null && b.getIsVip();
+            if (aVip && !bVip) return -1; // a е VIP, b не е - a първо
+            if (!aVip && bVip) return 1;  // b е VIP, a не е - b първо
+            return 0; // И двете са VIP или и двете не са - запазваме оригиналния ред
+        });
+        return allItems;
     }
 
-    // Старият метод (може да остане)
-    public List<Item> getAllItems() {
-        return itemRepository.findAll();
+    public Item getById(Long id) {
+        return itemRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Item not found"));
     }
 
-    public Item getItemById(Long id) {
-        return itemRepository.findById(id).orElse(null);
+    @Transactional
+    public Item update(Long id, Item updatedItem) {
+        Item item = getById(id);
+
+        item.setTitle(updatedItem.getTitle());
+        item.setDescription(updatedItem.getDescription());
+        item.setPrice(updatedItem.getPrice());
+        item.setCategory(updatedItem.getCategory());
+        item.setContactEmail(updatedItem.getContactEmail());
+        item.setContactPhone(updatedItem.getContactPhone());
+        // ownerEmail не го сменяме при update (за да не "крадат" обяви)
+
+        return itemRepository.save(item);
     }
 
-    public Item updateItem(Long id, Item newItemData) {
-        Item existing = itemRepository.findById(id).orElse(null);
-        if (existing == null)
-            return null;
-
-        existing.setTitle(newItemData.getTitle());
-        existing.setDescription(newItemData.getDescription());
-        existing.setPrice(newItemData.getPrice());
-
-        return itemRepository.save(existing);
-    }
-
-    public boolean deleteItem(Long id) {
-        if (!itemRepository.existsById(id))
-            return false;
+    @Transactional
+    public void delete(Long id) {
         itemRepository.deleteById(id);
-        return true;
     }
 }

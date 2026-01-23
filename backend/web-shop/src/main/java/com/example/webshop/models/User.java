@@ -16,7 +16,6 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
     private String fullName;
 
     public User() {
@@ -28,7 +27,6 @@ public class User {
         this.fullName = fullName;
     }
 
-    // Getters и Setters
     public Long getId() {
         return id;
     }
@@ -55,10 +53,5 @@ public class User {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
-    }
-
-    // Добавяме липсващия метод, който се извиква от Spring Security
-    public String getUsername() {
-        return this.email;
     }
 }

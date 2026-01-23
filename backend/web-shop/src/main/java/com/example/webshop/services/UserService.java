@@ -2,12 +2,16 @@ package com.example.webshop.services;
 
 import com.example.webshop.models.User;
 import com.example.webshop.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -15,25 +19,42 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    @Transactional
     public User register(String email, String password, String fullName) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already in use!");
         }
 
         String encodedPassword = passwordEncoder.encode(password);
+        logger.debug("Encoded password for email {}: {}", email, encodedPassword);
 
         User newUser = new User(email, encodedPassword, fullName);
-        return userRepository.save(newUser);
+        // saveAndFlush() принудително записва в базата данни веднага
+        User saved = userRepository.saveAndFlush(newUser);
+        logger.debug("User saved with ID: {}", saved.getId());
+        return saved;
     }
 
     public User login(String email, String password) {
+        logger.debug("Attempting login for email: {}", email);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> {
+                    logger.warn("User not found for email: {}", email);
+                    return new RuntimeException("Invalid email or password");
+                });
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        logger.debug("User found, stored password hash: {}", user.getPassword());
+        logger.debug("Input password length: {}", password != null ? password.length() : 0);
+        
+        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword());
+        logger.debug("Password matches: {}", passwordMatches);
+        
+        if (!passwordMatches) {
+            logger.warn("Password mismatch for email: {}", email);
             throw new RuntimeException("Invalid email or password");
         }
 
+        logger.info("Login successful for email: {}", email);
         return user;
     }
 }
