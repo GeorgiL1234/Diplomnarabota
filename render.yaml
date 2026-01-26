@@ -1,0 +1,31 @@
+services:
+  # Backend Service
+  - type: web
+    name: webshop-backend
+    env: java
+    buildCommand: cd backend/web-shop && ./mvnw clean package -DskipTests
+    startCommand: cd backend/web-shop && java -jar target/web-shop-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: JAVA_VERSION
+        value: 17
+    disk:
+      name: webshop-data
+      mountPath: /opt/render/project/src/backend/web-shop/data
+      sizeGB: 1
+
+  # Frontend Service
+  - type: web
+    name: webshop-frontend
+    env: static
+    buildCommand: cd web-shop-frontend && npm install && npm run build
+    staticPublishPath: web-shop-frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: webshop-backend
+          property: host
