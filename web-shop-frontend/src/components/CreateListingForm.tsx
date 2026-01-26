@@ -18,7 +18,6 @@ type CreateListingFormProps = {
   onContactPhoneChange: (phone: string) => void;
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: FormEvent) => void;
-  onToggle: () => void;
 };
 
 export function CreateListingForm({
@@ -38,7 +37,6 @@ export function CreateListingForm({
   onContactPhoneChange,
   onFileChange,
   onSubmit,
-  onToggle,
 }: CreateListingFormProps) {
   if (!show) return null;
 

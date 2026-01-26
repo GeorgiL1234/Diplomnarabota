@@ -2,7 +2,7 @@ import type { FormEvent, ChangeEvent } from "react";
 import type { Item, Review } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
-import { getImageUrl, API_BASE } from "../config";
+import { getImageUrl } from "../config";
 
 type ItemDetailProps = {
   item: Item;
@@ -17,7 +17,6 @@ type ItemDetailProps = {
   reviewRating: number;
   reviewComment: string;
   file: File | null;
-  newAnswer: { [key: number]: string };
   onBack: () => void;
   onAddToFavorites: (itemId: number) => void;
   onRemoveFromFavorites: (itemId: number) => void;
@@ -48,7 +47,6 @@ export function ItemDetail({
   reviewRating,
   reviewComment,
   file,
-  newAnswer,
   onBack,
   onAddToFavorites,
   onRemoveFromFavorites,

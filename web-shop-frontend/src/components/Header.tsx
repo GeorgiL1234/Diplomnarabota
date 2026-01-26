@@ -1,4 +1,4 @@
-import type { Language, View } from "../types";
+import type { View } from "../types";
 import type { Language as LangType } from "../translations";
 import { translations } from "../translations";
 

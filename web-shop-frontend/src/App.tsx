@@ -5,7 +5,7 @@ import "./App.css";
 import { translations, type Language } from "./translations";
 import type { Item, Favorite, Review, Message, ItemOrder, View } from "./types";
 import { CATEGORIES } from "./types";
-import { API_BASE, getImageUrl } from "./config";
+import { API_BASE } from "./config";
 import { Header } from "./components/Header";
 import { AuthSection } from "./components/AuthSection";
 import { ItemDetail } from "./components/ItemDetail";
@@ -883,7 +883,6 @@ function App() {
               onContactPhoneChange={setNewItemContactPhone}
               onFileChange={handleNewItemFileChange}
               onSubmit={handleCreateListing}
-              onToggle={() => setShowCreateForm(!showCreateForm)}
             />
 
             {/* Филтър по категория */}

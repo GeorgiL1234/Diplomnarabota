@@ -1,4 +1,4 @@
-import type { ItemOrder, Item, View } from "../types";
+import type { ItemOrder, Item } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
 

@@ -29,8 +29,6 @@ export function AuthSection({
   handleRegister,
   handleLogout,
 }: AuthSectionProps) {
-  const t = translations[language];
-
   if (loggedInEmail) {
     return (
       <section className="auth-section">
