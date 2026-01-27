@@ -2,6 +2,10 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/upload")
@@ -125,6 +132,37 @@ public class FileUploadController {
                 errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
             }
             return ResponseEntity.status(500).body("Upload failed: " + errorMsg);
+        }
+    }
+
+    @GetMapping("/uploads/{fileName:.+}")
+    public ResponseEntity<Resource> getImage(@PathVariable String fileName) {
+        try {
+            String UPLOAD_DIR = getUploadDir();
+            Path filePath = Paths.get(UPLOAD_DIR + fileName);
+            Resource resource = new FileSystemResource(filePath.toFile());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            String contentType = "application/octet-stream";
+            try {
+                contentType = Files.probeContentType(filePath);
+                if (contentType == null) {
+                    contentType = "application/octet-stream";
+                }
+            } catch (IOException e) {
+                System.out.println("Could not determine content type: " + e.getMessage());
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            System.out.println("Error serving image: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }
