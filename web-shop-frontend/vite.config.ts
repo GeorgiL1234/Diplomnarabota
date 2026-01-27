@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
+    minify: 'esbuild', // Използваме esbuild вместо terser (по-бърз и вградено в Vite)
   },
   // Preview настройки (за тестване на production build)
   preview: {
