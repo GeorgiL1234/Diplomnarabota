@@ -1,6 +1,5 @@
 import type { FormEvent } from "react";
 import type { Language } from "../translations";
-import { translations } from "../translations";
 
 type AuthSectionProps = {
   loggedInEmail: string | null;
@@ -24,7 +23,7 @@ export function AuthSection({
   setPassword,
   fullName,
   setFullName,
-  language,
+  language: _language,
   handleLogin,
   handleRegister,
   handleLogout,

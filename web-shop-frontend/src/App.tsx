@@ -768,7 +768,6 @@ function App() {
           reviewRating={reviewRating}
           reviewComment={reviewComment}
           file={file}
-          newAnswer={newAnswer}
           onBack={() => {
             setView("all");
             setSelectedItem(null);
