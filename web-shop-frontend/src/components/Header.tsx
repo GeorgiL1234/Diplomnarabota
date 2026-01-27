@@ -30,21 +30,36 @@ export function Header({
   };
 
   return (
-    <header className="app-header">
-      <div>
-        <h1 className="app-title">Web Shop</h1>
-        <p className="app-subtitle">{t.subtitle}</p>
+    <>
+      <div className="app-topbar">
+        <div className="app-topbar-left">Web Shop</div>
+        <div className="app-topbar-right">
+          <select
+            className="language-selector"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as LangType)}
+            style={{
+              background: 'transparent',
+              color: '#ffffff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="bg" style={{ background: '#000', color: '#fff' }}>🇧🇬 БГ</option>
+            <option value="en" style={{ background: '#000', color: '#fff' }}>🇬🇧 EN</option>
+            <option value="ru" style={{ background: '#000', color: '#fff' }}>🇷🇺 RU</option>
+          </select>
+        </div>
       </div>
-      <nav className="app-nav">
-        <select
-          className="language-selector"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as LangType)}
-        >
-          <option value="bg">🇧🇬 БГ</option>
-          <option value="en">🇬🇧 EN</option>
-          <option value="ru">🇷🇺 RU</option>
-        </select>
+      <header className="app-header">
+        <div className="app-header-content">
+          <div>
+            <h1 className="app-title">Web Shop</h1>
+          </div>
+          <nav className="app-nav">
         {loggedInEmail && (
           <>
             <button
@@ -91,7 +106,9 @@ export function Header({
         >
           {loggedInEmail ? t.navProfile : t.navLogin}
         </button>
-      </nav>
-    </header>
+          </nav>
+        </div>
+      </header>
+    </>
   );
 }
