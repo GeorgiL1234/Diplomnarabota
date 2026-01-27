@@ -291,6 +291,7 @@ function App() {
         try {
           const formData = new FormData();
           formData.append("file", fileToUpload);
+          formData.append("ownerEmail", loggedInEmail);
           const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
             method: "POST",
             body: formData,
