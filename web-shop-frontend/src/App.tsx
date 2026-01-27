@@ -319,7 +319,11 @@ function App() {
           } else {
             const errorText = await uploadRes.text();
             console.error('Upload failed:', uploadRes.status, errorText);
-            setError(`${t.errorImageNotUploaded} ${uploadRes.status}: ${errorText}`);
+            if (uploadRes.status === 413) {
+              setError(`Снимката е твърде голяма! Моля, изберете снимка под 20MB. (HTTP 413: Payload Too Large)`);
+            } else {
+              setError(`${t.errorImageNotUploaded} ${uploadRes.status}: ${errorText}`);
+            }
           }
         } catch (uploadErr: any) {
           console.error('Upload exception:', uploadErr);
@@ -334,7 +338,16 @@ function App() {
   // handler за промяна на файла при създаване
   const handleNewItemFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      setNewItemFile(e.target.files[0]);
+      const file = e.target.files[0];
+      const maxSize = 20 * 1024 * 1024; // 20MB
+      if (file.size > maxSize) {
+        setError(`Снимката е твърде голяма! Максимален размер: 20MB. Вашата снимка: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        e.target.value = ''; // Изчисти input-а
+        setNewItemFile(null);
+      } else {
+        setNewItemFile(file);
+        setError(null); // Изчисти грешката ако има
+      }
     }
   };
 

@@ -111,9 +111,12 @@ export function CreateListingForm({
         <input type="file" accept="image/*" onChange={onFileChange} required />
         {file && (
           <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-            Избрано: {file.name}
+            Избрано: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
           </p>
         )}
+        <p style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px", marginBottom: 0 }}>
+          Максимален размер: 20MB
+        </p>
       </div>
       <button type="submit" className="btn-primary">
         Създай обява
