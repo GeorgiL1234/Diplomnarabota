@@ -16,6 +16,8 @@ window.addEventListener('unhandledrejection', (event) => {
 
 console.log('Starting application...');
 console.log('API_BASE:', import.meta.env.VITE_API_BASE_URL || 'https://webshop-e6dx.onrender.com');
+console.log('Environment:', import.meta.env.MODE);
+console.log('Vite env:', import.meta.env);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

@@ -72,7 +72,7 @@ function App() {
 
   // language / език
   const [language, setLanguage] = useState<Language>("bg");
-  const t = translations[language];
+  const t = translations[language] || translations["bg"]; // Fallback към български
 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -713,6 +713,11 @@ function App() {
   };
 
 
+  // Debug logging
+  useEffect(() => {
+    console.log('App render:', { view, loggedInEmail, itemsCount: items.length });
+  }, [view, loggedInEmail, items.length]);
+
   return (
     <div className="app-container">
       <Header
@@ -725,8 +730,8 @@ function App() {
         setReviews={setReviews}
       />
 
-      {/* AUTH СЕКЦИЯ - показва се винаги, ако не е логнат, но не когато е детайлен view или favorites */}
-      {(!loggedInEmail || view === "auth") && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && (
+      {/* AUTH СЕКЦИЯ - показва се когато view === "auth" или когато не е логнат и няма друг активен view */}
+      {(view === "auth" || (!loggedInEmail && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine")) && (
         <AuthSection
           loggedInEmail={loggedInEmail}
           email={email}
