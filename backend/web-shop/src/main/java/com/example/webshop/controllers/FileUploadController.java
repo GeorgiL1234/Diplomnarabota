@@ -104,8 +104,9 @@ public class FileUploadController {
             System.out.println("Saving file to: " + destination.getAbsolutePath());
 
             try {
-                // Използвай getAbsoluteFile() за по-надежден път
-                file.transferTo(destination.getAbsoluteFile());
+                // Записване на файла байт по байт за по-надеждна работа на Render.com
+                byte[] bytes = file.getBytes();
+                Files.write(destination.toPath(), bytes);
                 System.out.println("File saved successfully! Size: " + destination.length() + " bytes");
                 
                 // Проверка дали файлът наистина е записан
@@ -113,10 +114,28 @@ public class FileUploadController {
                     System.out.println("ERROR: File was not saved correctly!");
                     return ResponseEntity.status(500).body("File was not saved correctly");
                 }
+                
+                // Проверка дали файлът може да се прочете
+                if (!destination.canRead()) {
+                    System.out.println("ERROR: File cannot be read!");
+                    return ResponseEntity.status(500).body("File cannot be read after saving");
+                }
             } catch (IOException e) {
                 System.out.println("ERROR saving file: " + e.getMessage());
                 e.printStackTrace();
-                return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage() + " (Path: " + destination.getAbsolutePath() + ")");
+                // Опитай се с алтернативен метод
+                try {
+                    System.out.println("Trying alternative save method...");
+                    file.transferTo(destination);
+                    if (destination.exists() && destination.length() > 0) {
+                        System.out.println("File saved using alternative method!");
+                    } else {
+                        return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage() + " (Path: " + destination.getAbsolutePath() + ")");
+                    }
+                } catch (IOException e2) {
+                    System.out.println("Alternative method also failed: " + e2.getMessage());
+                    return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage() + " (Alternative method also failed: " + e2.getMessage() + ")");
+                }
             }
 
             item.setImageUrl("/uploads/" + fileName);
