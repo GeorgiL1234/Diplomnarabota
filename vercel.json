@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd web-shop-frontend && npm run build",
+  "outputDirectory": "web-shop-frontend/dist"
+}
