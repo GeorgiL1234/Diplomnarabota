@@ -21,25 +21,39 @@ console.log('Vite env:', import.meta.env);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error('Root element not found');
-}
-
-try {
-  createRoot(rootElement).render(
-    <StrictMode>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </StrictMode>,
-  );
-  console.log('Application rendered successfully');
-} catch (error) {
-  console.error('Failed to render application:', error);
-  rootElement.innerHTML = `
-    <div style="padding: 20px; font-family: Arial, sans-serif;">
-      <h1>Грешка при зареждане</h1>
-      <p>Не можахме да заредим приложението.</p>
-      <pre>${error instanceof Error ? error.message : String(error)}</pre>
+  console.error('Root element not found!');
+  document.body.innerHTML = `
+    <div style="padding: 20px; font-family: Arial, sans-serif; background: #fee; border: 2px solid #f00;">
+      <h1>Критична грешка</h1>
+      <p>Root елементът не е намерен. Проверете дали index.html съдържа &lt;div id="root"&gt;&lt;/div&gt;</p>
     </div>
   `;
+} else {
+  try {
+    console.log('Root element found, creating React root...');
+    const root = createRoot(rootElement);
+    console.log('React root created, rendering app...');
+    root.render(
+      <StrictMode>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </StrictMode>,
+    );
+    console.log('Application rendered successfully');
+  } catch (error) {
+    console.error('Failed to render application:', error);
+    if (rootElement) {
+      rootElement.innerHTML = `
+        <div style="padding: 20px; font-family: Arial, sans-serif; background: #fee; border: 2px solid #f00;">
+          <h1>Грешка при зареждане</h1>
+          <p>Не можахме да заредим приложението.</p>
+          <pre style="background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto;">${error instanceof Error ? error.message : String(error)}</pre>
+          <button onclick="window.location.reload()" style="margin-top: 10px; padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Презареди страницата
+          </button>
+        </div>
+      `;
+    }
+  }
 }

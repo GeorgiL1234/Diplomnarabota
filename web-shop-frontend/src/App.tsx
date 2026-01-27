@@ -58,6 +58,11 @@ function App() {
   // view / навигация
   const [view, setView] = useState<View>("auth"); // Започваме с auth страницата
   
+  // Debug: винаги показваме нещо
+  useEffect(() => {
+    console.log('App state:', { view, loggedInEmail: !!loggedInEmail, itemsCount: items.length });
+  }, [view, loggedInEmail, items.length]);
+  
   // messages page
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
@@ -730,8 +735,8 @@ function App() {
         setReviews={setReviews}
       />
 
-      {/* AUTH СЕКЦИЯ - показва се когато view === "auth" или когато не е логнат и няма друг активен view */}
-      {(view === "auth" || (!loggedInEmail && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine")) && (
+      {/* AUTH СЕКЦИЯ - показва се когато view === "auth" */}
+      {view === "auth" && (
         <AuthSection
           loggedInEmail={loggedInEmail}
           email={email}
@@ -921,6 +926,21 @@ function App() {
             />
           </div>
         </section>
+      )}
+
+      {/* FALLBACK - ако нищо не се показва, покажи поне това */}
+      {!loggedInEmail && view !== "auth" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && (
+        <div style={{ padding: "40px", textAlign: "center", background: "rgba(255, 255, 255, 0.95)", margin: "40px auto", maxWidth: "600px", borderRadius: "12px" }}>
+          <h2>Добре дошли в Web Shop!</h2>
+          <p>Моля, влезте в системата или се регистрирайте, за да продължите.</p>
+          <button 
+            className="btn-primary" 
+            onClick={() => setView("auth")}
+            style={{ marginTop: "20px" }}
+          >
+            Вход / Регистрация
+          </button>
+        </div>
       )}
     </div>
   );
