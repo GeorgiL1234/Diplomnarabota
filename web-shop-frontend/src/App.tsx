@@ -289,14 +289,23 @@ function App() {
       // Ако има избрана снимка, качи я автоматично
       if (fileToUpload && createdItem.id) {
         try {
+          console.log('Uploading image for item:', createdItem.id);
+          console.log('File:', fileToUpload.name, fileToUpload.size, 'bytes');
           const formData = new FormData();
           formData.append("file", fileToUpload);
           formData.append("ownerEmail", loggedInEmail);
+          console.log('Sending upload request to:', `${API_BASE}/upload/${createdItem.id}`);
+          
           const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
             method: "POST",
             body: formData,
           });
+          
+          console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
+          
           if (uploadRes.ok) {
+            const responseText = await uploadRes.text();
+            console.log('Upload response:', responseText);
             setMessage(t.successListingImageUploaded);
             // Презареди items и обнови selectedItem, за да видим новата снимка
             setTimeout(() => {
@@ -309,9 +318,11 @@ function App() {
             }, 500);
           } else {
             const errorText = await uploadRes.text();
-            setError(`${t.errorImageNotUploaded} ${errorText}`);
+            console.error('Upload failed:', uploadRes.status, errorText);
+            setError(`${t.errorImageNotUploaded} ${uploadRes.status}: ${errorText}`);
           }
         } catch (uploadErr: any) {
+          console.error('Upload exception:', uploadErr);
           setError(`${t.errorImageNotUploaded} ${uploadErr.message}`);
         }
       }
