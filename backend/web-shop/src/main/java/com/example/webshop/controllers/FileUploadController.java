@@ -17,11 +17,15 @@ public class FileUploadController {
 
     /**
      * Base directory for file uploads.
-     * Uses the current working directory of the application to build
-     * an absolute path, which е по-стабилно под Windows.
+     * Uses temp directory on Render.com, falls back to user.dir
      */
-    private static final String UPLOAD_DIR = System.getProperty("user.dir")
-            + File.separator + "uploads" + File.separator;
+    private static String getUploadDir() {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        if (tempDir != null && !tempDir.isEmpty()) {
+            return tempDir + File.separator + "uploads" + File.separator;
+        }
+        return System.getProperty("user.dir") + File.separator + "uploads" + File.separator;
+    }
 
     private final ItemRepository itemRepository;
 
@@ -36,10 +40,11 @@ public class FileUploadController {
             @RequestParam("ownerEmail") String ownerEmail) {
 
         try {
+            String UPLOAD_DIR = getUploadDir();
             System.out.println(">>> UPLOAD HIT <<<");
             System.out.println("Upload dir: " + UPLOAD_DIR);
-            System.out.println("File name: " + file.getOriginalFilename());
-            System.out.println("File size: " + file.getSize());
+            System.out.println("File name: " + (file != null ? file.getOriginalFilename() : "null"));
+            System.out.println("File size: " + (file != null ? file.getSize() : "null"));
             System.out.println("Owner email: " + ownerEmail);
 
             if (file == null || file.isEmpty()) {
@@ -58,26 +63,53 @@ public class FileUploadController {
 
             File uploadDir = new File(UPLOAD_DIR);
             System.out.println("Creating upload directory: " + uploadDir.getAbsolutePath());
+            System.out.println("Directory exists: " + uploadDir.exists());
+            System.out.println("Directory can write: " + uploadDir.canWrite());
+            
             if (!uploadDir.exists()) {
                 boolean created = uploadDir.mkdirs();
                 System.out.println("Directory created: " + created);
                 if (!created && !uploadDir.exists()) {
                     System.out.println("ERROR: Could not create upload directory!");
-                    return ResponseEntity.status(500).body("Could not create upload directory: " + uploadDir.getAbsolutePath());
+                    // Опитай се с абсолютен път
+                    String altPath = "/tmp/uploads/";
+                    File altDir = new File(altPath);
+                    if (altDir.mkdirs() || altDir.exists()) {
+                        uploadDir = altDir;
+                        UPLOAD_DIR = altPath;
+                        System.out.println("Using alternative path: " + altPath);
+                    } else {
+                        return ResponseEntity.status(500).body("Could not create upload directory: " + uploadDir.getAbsolutePath());
+                    }
                 }
             }
 
+            // Проверка за права за запис
+            if (!uploadDir.canWrite()) {
+                System.out.println("ERROR: No write permissions to upload directory!");
+                return ResponseEntity.status(500).body("No write permissions to upload directory: " + uploadDir.getAbsolutePath());
+            }
+
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            // Санитизирай името на файла
+            fileName = fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
             File destination = new File(uploadDir, fileName);
             System.out.println("Saving file to: " + destination.getAbsolutePath());
 
             try {
-                file.transferTo(destination);
-                System.out.println("File saved successfully!");
+                // Използвай getAbsoluteFile() за по-надежден път
+                file.transferTo(destination.getAbsoluteFile());
+                System.out.println("File saved successfully! Size: " + destination.length() + " bytes");
+                
+                // Проверка дали файлът наистина е записан
+                if (!destination.exists() || destination.length() == 0) {
+                    System.out.println("ERROR: File was not saved correctly!");
+                    return ResponseEntity.status(500).body("File was not saved correctly");
+                }
             } catch (IOException e) {
                 System.out.println("ERROR saving file: " + e.getMessage());
                 e.printStackTrace();
-                return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage());
+                return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage() + " (Path: " + destination.getAbsolutePath() + ")");
             }
 
             item.setImageUrl("/uploads/" + fileName);
@@ -88,7 +120,11 @@ public class FileUploadController {
         } catch (Exception e) {
             System.out.println("ERROR in upload: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
+            String errorMsg = e.getMessage();
+            if (e.getCause() != null) {
+                errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
+            }
+            return ResponseEntity.status(500).body("Upload failed: " + errorMsg);
         }
     }
 }
