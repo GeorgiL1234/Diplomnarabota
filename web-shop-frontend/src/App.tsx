@@ -335,18 +335,108 @@ function App() {
     }
   };
 
+  // Функция за компресия на снимка
+  const compressImage = (file: File, maxSizeMB: number = 2): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Максимална ширина/височина 1920px
+          const maxDimension = 1920;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height / width) * maxDimension;
+              width = maxDimension;
+            } else {
+              width = (width / height) * maxDimension;
+              height = maxDimension;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Опитай се да компресираме до maxSizeMB
+          let quality = 0.9;
+          const maxSizeBytes = maxSizeMB * 1024 * 1024;
+          
+          const tryCompress = () => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error('Failed to compress image'));
+                  return;
+                }
+                
+                if (blob.size <= maxSizeBytes || quality <= 0.1) {
+                  const compressedFile = new File([blob], file.name, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                  });
+                  console.log(`Image compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+                  resolve(compressedFile);
+                } else {
+                  quality -= 0.1;
+                  tryCompress();
+                }
+              },
+              'image/jpeg',
+              quality
+            );
+          };
+          
+          tryCompress();
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // handler за промяна на файла при създаване
-  const handleNewItemFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleNewItemFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
       const maxSize = 20 * 1024 * 1024; // 20MB
+      
       if (file.size > maxSize) {
         setError(`Снимката е твърде голяма! Максимален размер: 20MB. Вашата снимка: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         e.target.value = ''; // Изчисти input-а
         setNewItemFile(null);
+        return;
+      }
+      
+      // Компресирай снимката ако е над 2MB
+      if (file.size > 2 * 1024 * 1024) {
+        try {
+          setMessage('Компресиране на снимката...');
+          const compressedFile = await compressImage(file, 2);
+          setNewItemFile(compressedFile);
+          setMessage(null);
+          setError(null);
+        } catch (err) {
+          console.error('Compression error:', err);
+          setError('Грешка при компресиране на снимката. Моля, опитайте с по-малка снимка.');
+          e.target.value = '';
+          setNewItemFile(null);
+        }
       } else {
         setNewItemFile(file);
-        setError(null); // Изчисти грешката ако има
+        setError(null);
       }
     }
   };
