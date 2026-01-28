@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 
 @RestController
 @RequestMapping("/upload")
@@ -103,44 +104,44 @@ public class FileUploadController {
             File destination = new File(uploadDir, fileName);
             System.out.println("Saving file to: " + destination.getAbsolutePath());
 
+            // Опитай се да запишеш файла на диск
+            boolean fileSaved = false;
             try {
-                // Записване на файла байт по байт за по-надеждна работа на Render.com
                 byte[] bytes = file.getBytes();
                 Files.write(destination.toPath(), bytes);
-                System.out.println("File saved successfully! Size: " + destination.length() + " bytes");
                 
-                // Проверка дали файлът наистина е записан
-                if (!destination.exists() || destination.length() == 0) {
-                    System.out.println("ERROR: File was not saved correctly!");
-                    return ResponseEntity.status(500).body("File was not saved correctly");
+                if (destination.exists() && destination.length() > 0 && destination.canRead()) {
+                    fileSaved = true;
+                    System.out.println("File saved to disk successfully! Size: " + destination.length() + " bytes");
+                    item.setImageUrl("/uploads/" + fileName);
                 }
-                
-                // Проверка дали файлът може да се прочете
-                if (!destination.canRead()) {
-                    System.out.println("ERROR: File cannot be read!");
-                    return ResponseEntity.status(500).body("File cannot be read after saving");
-                }
-            } catch (IOException e) {
-                System.out.println("ERROR saving file: " + e.getMessage());
-                e.printStackTrace();
-                // Опитай се с алтернативен метод
+            } catch (Exception e) {
+                System.out.println("Failed to save file to disk: " + e.getMessage());
+                // Продължи към base64 fallback
+            }
+            
+            // Ако файлът не може да се запише на диск, запази като base64 в базата данни
+            if (!fileSaved) {
                 try {
-                    System.out.println("Trying alternative save method...");
-                    file.transferTo(destination);
-                    if (destination.exists() && destination.length() > 0) {
-                        System.out.println("File saved using alternative method!");
-                    } else {
-                        return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage() + " (Path: " + destination.getAbsolutePath() + ")");
+                    System.out.println("Saving image as base64 in database...");
+                    byte[] bytes = file.getBytes();
+                    String base64Image = Base64.getEncoder().encodeToString(bytes);
+                    String contentType = file.getContentType();
+                    if (contentType == null) {
+                        contentType = "image/jpeg";
                     }
-                } catch (IOException e2) {
-                    System.out.println("Alternative method also failed: " + e2.getMessage());
-                    return ResponseEntity.status(500).body("Failed to save file: " + e.getMessage() + " (Alternative method also failed: " + e2.getMessage() + ")");
+                    String dataUri = "data:" + contentType + ";base64," + base64Image;
+                    item.setImageUrl(dataUri);
+                    System.out.println("Image saved as base64. Size: " + base64Image.length() + " characters");
+                } catch (Exception e) {
+                    System.out.println("ERROR: Failed to save image as base64: " + e.getMessage());
+                    e.printStackTrace();
+                    return ResponseEntity.status(500).body("Failed to save image: " + e.getMessage());
                 }
             }
-
-            item.setImageUrl("/uploads/" + fileName);
+            
             itemRepository.save(item);
-            System.out.println("Item updated with image URL: " + item.getImageUrl());
+            System.out.println("Item updated with image URL/image data");
 
             return ResponseEntity.ok("UPLOAD_OK");
         } catch (Exception e) {
