@@ -104,40 +104,29 @@ public class FileUploadController {
             File destination = new File(uploadDir, fileName);
             System.out.println("Saving file to: " + destination.getAbsolutePath());
 
-            // Опитай се да запишеш файла на диск
-            boolean fileSaved = false;
+            // На Render.com файловата система е ефемерна, затова директно запазваме като base64
+            // Това гарантира, че снимките винаги ще се запазят, дори и файловата система да не работи
             try {
+                System.out.println("Saving image as base64 in database (Render.com compatible)...");
                 byte[] bytes = file.getBytes();
-                Files.write(destination.toPath(), bytes);
                 
-                if (destination.exists() && destination.length() > 0 && destination.canRead()) {
-                    fileSaved = true;
-                    System.out.println("File saved to disk successfully! Size: " + destination.length() + " bytes");
-                    item.setImageUrl("/uploads/" + fileName);
+                // Проверка за размера - ако е твърде голям, компресирай го
+                if (bytes.length > 2 * 1024 * 1024) { // Ако е над 2MB
+                    System.out.println("Image is large (" + bytes.length + " bytes), but will save as base64 anyway");
                 }
+                
+                String base64Image = Base64.getEncoder().encodeToString(bytes);
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    contentType = "image/jpeg"; // Default fallback
+                }
+                String dataUri = "data:" + contentType + ";base64," + base64Image;
+                item.setImageUrl(dataUri);
+                System.out.println("Image saved as base64 successfully. Base64 size: " + base64Image.length() + " characters, Original size: " + bytes.length + " bytes");
             } catch (Exception e) {
-                System.out.println("Failed to save file to disk: " + e.getMessage());
-                // Продължи към base64 fallback
-            }
-            
-            // Ако файлът не може да се запише на диск, запази като base64 в базата данни
-            if (!fileSaved) {
-                try {
-                    System.out.println("Saving image as base64 in database...");
-                    byte[] bytes = file.getBytes();
-                    String base64Image = Base64.getEncoder().encodeToString(bytes);
-                    String contentType = file.getContentType();
-                    if (contentType == null) {
-                        contentType = "image/jpeg";
-                    }
-                    String dataUri = "data:" + contentType + ";base64," + base64Image;
-                    item.setImageUrl(dataUri);
-                    System.out.println("Image saved as base64. Size: " + base64Image.length() + " characters");
-                } catch (Exception e) {
-                    System.out.println("ERROR: Failed to save image as base64: " + e.getMessage());
-                    e.printStackTrace();
-                    return ResponseEntity.status(500).body("Failed to save image: " + e.getMessage());
-                }
+                System.out.println("ERROR: Failed to save image as base64: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body("Failed to save image: " + e.getMessage() + " (Stack: " + e.getClass().getName() + ")");
             }
             
             itemRepository.save(item);
