@@ -2,8 +2,6 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -39,15 +37,13 @@ public class FileUploadController {
     }
 
     private final ItemRepository itemRepository;
-    
-    @PersistenceContext
-    private EntityManager entityManager;
 
     public FileUploadController(ItemRepository itemRepository) {
         this.itemRepository = itemRepository;
     }
 
     @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Transactional
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
             @RequestParam("file") MultipartFile file,
@@ -126,17 +122,7 @@ public class FileUploadController {
                 System.out.println("Saving item to repository with saveAndFlush...");
                 Item savedItem = itemRepository.saveAndFlush(item);
                 System.out.println("Item saved successfully with ID: " + savedItem.getId());
-                
-                // Clear persistence context to force reload from database
-                entityManager.clear();
-                
-                // Verify the save worked by reloading from database
-                Item verifyItem = itemRepository.findById(itemId).orElse(null);
-                if (verifyItem != null && verifyItem.getImageUrl() != null) {
-                    System.out.println("Verification: Image URL saved, length: " + verifyItem.getImageUrl().length() + " chars");
-                } else {
-                    System.out.println("WARNING: Verification failed - image URL is null after save!");
-                }
+                System.out.println("Saved item imageUrl length: " + (savedItem.getImageUrl() != null ? savedItem.getImageUrl().length() : "null"));
             } catch (Exception e) {
                 System.out.println("ERROR: Failed to save item to database");
                 System.out.println("Exception type: " + e.getClass().getName());
