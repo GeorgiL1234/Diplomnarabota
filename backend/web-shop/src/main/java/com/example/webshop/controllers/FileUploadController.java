@@ -71,7 +71,6 @@ public class FileUploadController {
 
             // На Render.com файловата система е ефемерна, затова директно запазваме като base64
             // Това гарантира, че снимките винаги ще се запазят, дори и файловата система да не работи
-            // Това гарантира, че снимките винаги ще се запазят, дори и файловата система да не работи
             try {
                 System.out.println("Saving image as base64 in database (Render.com compatible)...");
                 byte[] bytes = file.getBytes();
