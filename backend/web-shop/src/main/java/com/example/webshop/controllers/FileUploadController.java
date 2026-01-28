@@ -123,17 +123,14 @@ public class FileUploadController {
                 item.setImageUrl(dataUri);
                 System.out.println("Image URL set on item");
                 
-                // Reload item to ensure we have the latest version
-                entityManager.refresh(item);
-                
                 System.out.println("Saving item to repository with saveAndFlush...");
                 Item savedItem = itemRepository.saveAndFlush(item);
                 System.out.println("Item saved successfully with ID: " + savedItem.getId());
                 
-                // Clear persistence context to force reload
+                // Clear persistence context to force reload from database
                 entityManager.clear();
                 
-                // Verify the save worked
+                // Verify the save worked by reloading from database
                 Item verifyItem = itemRepository.findById(itemId).orElse(null);
                 if (verifyItem != null && verifyItem.getImageUrl() != null) {
                     System.out.println("Verification: Image URL saved, length: " + verifyItem.getImageUrl().length() + " chars");
