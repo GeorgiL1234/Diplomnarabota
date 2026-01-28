@@ -16,8 +16,7 @@ public class Item {
     private String description;
     private double price;
     
-    @Column(columnDefinition = "TEXT")
-    @Lob
+    @Column(columnDefinition = "TEXT", length = Integer.MAX_VALUE)
     private String imageUrl;
 
     // За фронтенд разделяне на "обяви" и "моите обяви"
