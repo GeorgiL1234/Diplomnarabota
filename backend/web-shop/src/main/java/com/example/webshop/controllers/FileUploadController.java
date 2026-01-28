@@ -72,16 +72,32 @@ public class FileUploadController {
 
             // На Render.com файловата система е ефемерна, затова директно запазваме като base64
             System.out.println("Saving image as base64 in database (Render.com compatible)...");
-            byte[] bytes = file.getBytes();
-            System.out.println("File bytes read: " + bytes.length + " bytes");
             
-            // Проверка за размера
-            if (bytes.length > 5 * 1024 * 1024) { // Ако е над 5MB
-                System.out.println("WARNING: Image is very large (" + bytes.length + " bytes)");
+            byte[] bytes;
+            try {
+                bytes = file.getBytes();
+                System.out.println("File bytes read: " + bytes.length + " bytes");
+            } catch (IOException e) {
+                System.out.println("ERROR: Failed to read file bytes: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body("Failed to read file: " + e.getMessage());
             }
             
-            String base64Image = Base64.getEncoder().encodeToString(bytes);
-            System.out.println("Base64 encoded: " + base64Image.length() + " characters");
+            // Проверка за размера - H2 TEXT колоната може да съхранява до 2GB, но нека ограничим до 10MB за сигурност
+            if (bytes.length > 10 * 1024 * 1024) { // Ако е над 10MB
+                System.out.println("ERROR: Image is too large (" + bytes.length + " bytes, max 10MB)");
+                return ResponseEntity.status(413).body("Image is too large. Maximum size is 10MB.");
+            }
+            
+            String base64Image;
+            try {
+                base64Image = Base64.getEncoder().encodeToString(bytes);
+                System.out.println("Base64 encoded: " + base64Image.length() + " characters");
+            } catch (Exception e) {
+                System.out.println("ERROR: Failed to encode base64: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body("Failed to encode image: " + e.getMessage());
+            }
             
             String contentType = file.getContentType();
             if (contentType == null || !contentType.startsWith("image/")) {
@@ -92,11 +108,27 @@ public class FileUploadController {
             String dataUri = "data:" + contentType + ";base64," + base64Image;
             System.out.println("Data URI created, length: " + dataUri.length() + " characters");
             
-            item.setImageUrl(dataUri);
-            System.out.println("Image URL set on item");
+            // Проверка дали dataUri не е твърде голям (H2 TEXT поддържа до 2GB, но нека проверим)
+            if (dataUri.length() > 50 * 1024 * 1024) { // 50MB като string
+                System.out.println("ERROR: Data URI is too large (" + dataUri.length() + " characters)");
+                return ResponseEntity.status(413).body("Image data is too large after encoding.");
+            }
             
-            itemRepository.save(item);
-            System.out.println("Item saved to database successfully");
+            try {
+                item.setImageUrl(dataUri);
+                System.out.println("Image URL set on item");
+                
+                itemRepository.save(item);
+                System.out.println("Item saved to database successfully");
+            } catch (Exception e) {
+                System.out.println("ERROR: Failed to save item to database: " + e.getMessage());
+                e.printStackTrace();
+                if (e.getCause() != null) {
+                    System.out.println("Cause: " + e.getCause().getMessage());
+                }
+                return ResponseEntity.status(500).body("Failed to save to database: " + e.getMessage() + 
+                    (e.getCause() != null ? " (Cause: " + e.getCause().getMessage() + ")" : ""));
+            }
 
             return ResponseEntity.ok("UPLOAD_OK");
         } catch (RuntimeException e) {
