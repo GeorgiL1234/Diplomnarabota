@@ -45,7 +45,7 @@ export type ItemOrder = {
   status: string;
 };
 
-export type View = "all" | "mine" | "auth" | "detail" | "messages" | "orders" | "favorites";
+export type View = "all" | "mine" | "login" | "register" | "detail" | "messages" | "orders" | "favorites";
 
 export type Language = "bg" | "en" | "ru";
 

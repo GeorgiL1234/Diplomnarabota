@@ -101,8 +101,8 @@ export function Header({
         )}
         <button
           type="button"
-          className={`nav-btn ${view === "auth" ? "active" : ""}`}
-          onClick={() => handleViewChange("auth")}
+          className={`nav-btn ${view === "login" || view === "register" ? "active" : ""}`}
+          onClick={() => handleViewChange(loggedInEmail ? "all" : "login")}
         >
           {loggedInEmail ? t.navProfile : t.navLogin}
         </button>

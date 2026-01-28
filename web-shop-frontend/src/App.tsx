@@ -7,7 +7,8 @@ import type { Item, Favorite, Review, Message, ItemOrder, View } from "./types";
 import { CATEGORIES } from "./types";
 import { API_BASE } from "./config";
 import { Header } from "./components/Header";
-import { AuthSection } from "./components/AuthSection";
+import { LoginPage } from "./components/LoginPage";
+import { RegisterPage } from "./components/RegisterPage";
 import { ItemDetail } from "./components/ItemDetail";
 import { ItemList } from "./components/ItemList";
 import { CreateListingForm } from "./components/CreateListingForm";
@@ -16,10 +17,15 @@ import { OrdersPage } from "./components/OrdersPage";
 import { FavoritesPage } from "./components/FavoritesPage";
 
 function App() {
-  // auth
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // auth - login state (отделни променливи за вход)
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  
+  // auth - register state (отделни променливи за регистрация)
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  
   const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
 
   // items
@@ -56,7 +62,8 @@ function App() {
   const [newAnswer, setNewAnswer] = useState<{ [key: number]: string }>({});
 
   // view / навигация
-  const [view, setView] = useState<View>("auth"); // Започваме с auth страницата
+  const [view, setView] = useState<View>("login"); // Започваме с login страницата
+  const [authView, setAuthView] = useState<"login" | "register">("login"); // Под-вид на auth страницата
   
   // Debug: винаги показваме нещо
   useEffect(() => {
@@ -149,7 +156,7 @@ function App() {
     setMessage(null);
     
     // Валидация на паролата
-    const passwordError = validatePassword(password);
+    const passwordError = validatePassword(registerPassword);
     if (passwordError) {
       setError(passwordError);
       return;
@@ -159,16 +166,24 @@ function App() {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email, password, fullName }),
+        body: JSON.stringify({ email: registerEmail, password: registerPassword, fullName }),
       });
-      if (!res.ok) throw new Error(t.errorRegistration);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Register error response:", errorText);
+        throw new Error(errorText || t.errorRegistration);
+      }
+      const responseText = await res.text();
+      console.log("Register response:", responseText);
       setMessage(t.successRegistration);
-      setLoggedInEmail(email);
-      setEmail("");
-      setPassword("");
+      // След успешна регистрация, автоматично влизаме
+      setLoggedInEmail(registerEmail);
+      setRegisterEmail("");
+      setRegisterPassword("");
       setFullName("");
       setView("all");
     } catch (err) {
+      console.error("Register error:", err);
       setError(String(err));
     }
   };
@@ -180,7 +195,7 @@ function App() {
     setMessage(null);
     
     // Валидация на празни полета
-    if (!email || !password) {
+    if (!loginEmail || !loginPassword) {
       setError("Моля, попълнете email и парола");
       return;
     }
@@ -189,7 +204,7 @@ function App() {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
       
       if (!res.ok) {
@@ -201,10 +216,10 @@ function App() {
       const responseText = await res.text();
       console.log("Login response:", responseText);
       
-      setLoggedInEmail(email);
+      setLoggedInEmail(loginEmail);
       setMessage(t.successLogin);
-      setEmail("");
-      setPassword("");
+      setLoginEmail("");
+      setLoginPassword("");
       setView("all"); // След успешен вход, отиваме на обявите
     } catch (err) {
       console.error("Login error:", err);
@@ -215,12 +230,15 @@ function App() {
   const handleLogout = () => {
     setLoggedInEmail(null);
     setMessage(t.loggedOut);
-    setEmail("");
-    setPassword("");
+    setLoginEmail("");
+    setLoginPassword("");
+    setRegisterEmail("");
+    setRegisterPassword("");
     setFullName("");
     setSelectedItem(null);
     setReviews([]);
-    setView("auth");
+    setView("login");
+    setAuthView("login");
   };
 
   // създаване на обява
@@ -850,20 +868,41 @@ function App() {
         setReviews={setReviews}
       />
 
-      {/* AUTH СЕКЦИЯ - показва се когато view === "auth" */}
-      {view === "auth" && (
-        <AuthSection
-          loggedInEmail={loggedInEmail}
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          fullName={fullName}
-          setFullName={setFullName}
+      {/* LOGIN СТРАНИЦА */}
+      {view === "login" && !loggedInEmail && (
+        <LoginPage
+          email={loginEmail}
+          setEmail={setLoginEmail}
+          password={loginPassword}
+          setPassword={setLoginPassword}
           language={language}
           handleLogin={handleLogin}
+          onSwitchToRegister={() => {
+            setView("register");
+            setAuthView("register");
+            setError(null);
+          }}
+          error={error}
+        />
+      )}
+
+      {/* REGISTER СТРАНИЦА */}
+      {view === "register" && !loggedInEmail && (
+        <RegisterPage
+          fullName={fullName}
+          setFullName={setFullName}
+          email={registerEmail}
+          setEmail={setRegisterEmail}
+          password={registerPassword}
+          setPassword={setRegisterPassword}
+          language={language}
           handleRegister={handleRegister}
-          handleLogout={handleLogout}
+          onSwitchToLogin={() => {
+            setView("login");
+            setAuthView("login");
+            setError(null);
+          }}
+          error={error}
         />
       )}
 
@@ -1044,13 +1083,13 @@ function App() {
       )}
 
       {/* FALLBACK - ако нищо не се показва, покажи поне това */}
-      {!loggedInEmail && view !== "auth" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && (
+      {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && (
         <div style={{ padding: "40px", textAlign: "center", background: "rgba(255, 255, 255, 0.95)", margin: "40px auto", maxWidth: "600px", borderRadius: "12px" }}>
           <h2>Добре дошли в Web Shop!</h2>
           <p>Моля, влезте в системата или се регистрирайте, за да продължите.</p>
           <button 
             className="btn-primary" 
-            onClick={() => setView("auth")}
+            onClick={() => setView("login")}
             style={{ marginTop: "20px" }}
           >
             Вход / Регистрация
