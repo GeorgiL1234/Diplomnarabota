@@ -48,9 +48,8 @@ public class FileUploadController {
             @RequestParam("ownerEmail") String ownerEmail) {
 
         try {
-            String UPLOAD_DIR = getUploadDir();
             System.out.println(">>> UPLOAD HIT <<<");
-            System.out.println("Upload dir: " + UPLOAD_DIR);
+            System.out.println("Item ID: " + itemId);
             System.out.println("File name: " + (file != null ? file.getOriginalFilename() : "null"));
             System.out.println("File size: " + (file != null ? file.getSize() : "null"));
             System.out.println("Owner email: " + ownerEmail);
@@ -61,7 +60,7 @@ public class FileUploadController {
             }
 
             Item item = itemRepository.findById(itemId)
-                    .orElseThrow(() -> new RuntimeException("Item not found"));
+                    .orElseThrow(() -> new RuntimeException("Item not found: " + itemId));
 
             // Проверка дали потребителят е собственик на обявата
             if (item.getOwnerEmail() == null || !item.getOwnerEmail().equals(ownerEmail)) {
@@ -70,42 +69,46 @@ public class FileUploadController {
             }
 
             // На Render.com файловата система е ефемерна, затова директно запазваме като base64
-            // Това гарантира, че снимките винаги ще се запазят, дори и файловата система да не работи
-            try {
-                System.out.println("Saving image as base64 in database (Render.com compatible)...");
-                byte[] bytes = file.getBytes();
-                
-                // Проверка за размера - ако е твърде голям, компресирай го
-                if (bytes.length > 2 * 1024 * 1024) { // Ако е над 2MB
-                    System.out.println("Image is large (" + bytes.length + " bytes), but will save as base64 anyway");
-                }
-                
-                String base64Image = Base64.getEncoder().encodeToString(bytes);
-                String contentType = file.getContentType();
-                if (contentType == null || !contentType.startsWith("image/")) {
-                    contentType = "image/jpeg"; // Default fallback
-                }
-                String dataUri = "data:" + contentType + ";base64," + base64Image;
-                item.setImageUrl(dataUri);
-                System.out.println("Image saved as base64 successfully. Base64 size: " + base64Image.length() + " characters, Original size: " + bytes.length + " bytes");
-            } catch (Exception e) {
-                System.out.println("ERROR: Failed to save image as base64: " + e.getMessage());
-                e.printStackTrace();
-                return ResponseEntity.status(500).body("Failed to save image: " + e.getMessage() + " (Stack: " + e.getClass().getName() + ")");
+            System.out.println("Saving image as base64 in database (Render.com compatible)...");
+            byte[] bytes = file.getBytes();
+            System.out.println("File bytes read: " + bytes.length + " bytes");
+            
+            // Проверка за размера
+            if (bytes.length > 5 * 1024 * 1024) { // Ако е над 5MB
+                System.out.println("WARNING: Image is very large (" + bytes.length + " bytes)");
             }
             
+            String base64Image = Base64.getEncoder().encodeToString(bytes);
+            System.out.println("Base64 encoded: " + base64Image.length() + " characters");
+            
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                contentType = "image/jpeg"; // Default fallback
+            }
+            System.out.println("Content type: " + contentType);
+            
+            String dataUri = "data:" + contentType + ";base64," + base64Image;
+            System.out.println("Data URI created, length: " + dataUri.length() + " characters");
+            
+            item.setImageUrl(dataUri);
+            System.out.println("Image URL set on item");
+            
             itemRepository.save(item);
-            System.out.println("Item updated with image URL/image data");
+            System.out.println("Item saved to database successfully");
 
             return ResponseEntity.ok("UPLOAD_OK");
+        } catch (RuntimeException e) {
+            System.out.println("RUNTIME ERROR in upload: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("ERROR in upload: " + e.getMessage());
             e.printStackTrace();
-            String errorMsg = e.getMessage();
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown error";
             if (e.getCause() != null) {
                 errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
             }
-            return ResponseEntity.status(500).body("Upload failed: " + errorMsg);
+            return ResponseEntity.status(500).body("Upload failed: " + errorMsg + " [" + e.getClass().getSimpleName() + "]");
         }
     }
 
