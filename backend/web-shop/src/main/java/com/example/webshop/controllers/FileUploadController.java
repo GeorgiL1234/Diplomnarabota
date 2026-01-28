@@ -115,19 +115,35 @@ public class FileUploadController {
             }
             
             try {
+                System.out.println("Setting image URL on item (length: " + dataUri.length() + " chars)...");
                 item.setImageUrl(dataUri);
                 System.out.println("Image URL set on item");
                 
-                itemRepository.save(item);
-                System.out.println("Item saved to database successfully");
+                System.out.println("Saving item to repository...");
+                Item savedItem = itemRepository.save(item);
+                System.out.println("Item saved successfully with ID: " + savedItem.getId());
+                
+                // Verify the save worked
+                Item verifyItem = itemRepository.findById(itemId).orElse(null);
+                if (verifyItem != null && verifyItem.getImageUrl() != null) {
+                    System.out.println("Verification: Image URL saved, length: " + verifyItem.getImageUrl().length() + " chars");
+                } else {
+                    System.out.println("WARNING: Verification failed - image URL is null after save!");
+                }
             } catch (Exception e) {
-                System.out.println("ERROR: Failed to save item to database: " + e.getMessage());
+                System.out.println("ERROR: Failed to save item to database");
+                System.out.println("Exception type: " + e.getClass().getName());
+                System.out.println("Exception message: " + e.getMessage());
                 e.printStackTrace();
                 if (e.getCause() != null) {
-                    System.out.println("Cause: " + e.getCause().getMessage());
+                    System.out.println("Cause type: " + e.getCause().getClass().getName());
+                    System.out.println("Cause message: " + e.getCause().getMessage());
                 }
-                return ResponseEntity.status(500).body("Failed to save to database: " + e.getMessage() + 
-                    (e.getCause() != null ? " (Cause: " + e.getCause().getMessage() + ")" : ""));
+                String errorMsg = "Failed to save to database: " + e.getMessage();
+                if (e.getCause() != null) {
+                    errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
+                }
+                return ResponseEntity.status(500).body(errorMsg);
             }
 
             return ResponseEntity.ok("UPLOAD_OK");
