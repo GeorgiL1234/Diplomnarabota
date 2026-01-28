@@ -10,6 +10,7 @@ type HeaderProps = {
   setView: (view: View) => void;
   setSelectedItem: (item: any) => void;
   setReviews: (reviews: any[]) => void;
+  handleLogout: () => void;
 };
 
 export function Header({
@@ -20,6 +21,7 @@ export function Header({
   setView,
   setSelectedItem,
   setReviews,
+  handleLogout,
 }: HeaderProps) {
   const t = translations[language];
 
@@ -99,13 +101,23 @@ export function Header({
             </button>
           </>
         )}
-        <button
-          type="button"
-          className={`nav-btn ${view === "login" || view === "register" ? "active" : ""}`}
-          onClick={() => handleViewChange(loggedInEmail ? "all" : "login")}
-        >
-          {loggedInEmail ? t.navProfile : t.navLogin}
-        </button>
+        {loggedInEmail ? (
+          <button
+            type="button"
+            className="nav-btn"
+            onClick={handleLogout}
+          >
+            Изход
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={`nav-btn ${view === "login" || view === "register" ? "active" : ""}`}
+            onClick={() => handleViewChange("login")}
+          >
+            {t.navLogin}
+          </button>
+        )}
           </nav>
         </div>
       </header>

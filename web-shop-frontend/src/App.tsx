@@ -63,7 +63,6 @@ function App() {
 
   // view / навигация
   const [view, setView] = useState<View>("login"); // Започваме с login страницата
-  const [authView, setAuthView] = useState<"login" | "register">("login"); // Под-вид на auth страницата
   
   // Debug: винаги показваме нещо
   useEffect(() => {
@@ -238,7 +237,6 @@ function App() {
     setSelectedItem(null);
     setReviews([]);
     setView("login");
-    setAuthView("login");
   };
 
   // създаване на обява
@@ -866,6 +864,7 @@ function App() {
         setView={setView}
         setSelectedItem={setSelectedItem}
         setReviews={setReviews}
+        handleLogout={handleLogout}
       />
 
       {/* LOGIN СТРАНИЦА */}
@@ -879,7 +878,6 @@ function App() {
           handleLogin={handleLogin}
           onSwitchToRegister={() => {
             setView("register");
-            setAuthView("register");
             setError(null);
           }}
           error={error}
@@ -899,7 +897,6 @@ function App() {
           handleRegister={handleRegister}
           onSwitchToLogin={() => {
             setView("login");
-            setAuthView("login");
             setError(null);
           }}
           error={error}
