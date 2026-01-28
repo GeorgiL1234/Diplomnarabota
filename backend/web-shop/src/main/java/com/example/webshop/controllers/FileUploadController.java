@@ -46,7 +46,7 @@ public class FileUploadController {
     @Transactional
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
-            @RequestPart("file") MultipartFile file,
+            @RequestParam("file") MultipartFile file,
             @RequestParam("ownerEmail") String ownerEmail) {
 
         try {
