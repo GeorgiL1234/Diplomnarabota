@@ -15,6 +15,7 @@ import { CreateListingForm } from "./components/CreateListingForm";
 import { MessagesPage } from "./components/MessagesPage";
 import { OrdersPage } from "./components/OrdersPage";
 import { FavoritesPage } from "./components/FavoritesPage";
+import { VipListingsPage } from "./components/VipListingsPage";
 
 function App() {
   // auth - login state (отделни променливи за вход)
@@ -41,6 +42,7 @@ function App() {
   const [newItemCategory, setNewItemCategory] = useState("Други");
   const [newItemContactEmail, setNewItemContactEmail] = useState("");
   const [newItemContactPhone, setNewItemContactPhone] = useState("");
+  const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("card");
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
 
   // reviews
@@ -304,6 +306,7 @@ function App() {
           category: newItemCategory,
           contactEmail: emailTrimmed || null,
           contactPhone: phoneTrimmed || null,
+          paymentMethod: newItemPaymentMethod || null,
         }),
       });
       if (!res.ok) {
@@ -318,6 +321,7 @@ function App() {
       setNewItemCategory("Други");
       setNewItemContactEmail("");
       setNewItemContactPhone("");
+      setNewItemPaymentMethod("card");
       const fileToUpload = newItemFile;
       setNewItemFile(null);
       setShowCreateForm(false);
@@ -1038,6 +1042,17 @@ function App() {
         />
       )}
 
+      {/* VIP ОБЯВИ СТРАНИЦА */}
+      {view === "vip" && (
+        <VipListingsPage
+          items={items}
+          loggedInEmail={loggedInEmail}
+          selectedCategory={selectedCategory}
+          onItemClick={openItem}
+          onCategoryChange={setSelectedCategory}
+        />
+      )}
+
       {/* СПИСЪК С ОБЯВИ - само ако е логнат */}
       {loggedInEmail && (view === "all" || view === "mine") && (
         <section className="listings-section">
@@ -1063,6 +1078,7 @@ function App() {
               category={newItemCategory}
               contactEmail={newItemContactEmail}
               contactPhone={newItemContactPhone}
+              paymentMethod={newItemPaymentMethod}
               file={newItemFile}
               onTitleChange={setNewItemTitle}
               onDescriptionChange={setNewItemDescription}
@@ -1070,6 +1086,7 @@ function App() {
               onCategoryChange={setNewItemCategory}
               onContactEmailChange={setNewItemContactEmail}
               onContactPhoneChange={setNewItemContactPhone}
+              onPaymentMethodChange={setNewItemPaymentMethod}
               onFileChange={handleNewItemFileChange}
               onSubmit={handleCreateListing}
             />
@@ -1109,7 +1126,7 @@ function App() {
       )}
 
       {/* FALLBACK - ако нищо не се показва, покажи поне това */}
-      {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && (
+      {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && view !== "vip" && (
         <div style={{ padding: "40px", textAlign: "center", background: "rgba(255, 255, 255, 0.95)", margin: "40px auto", maxWidth: "600px", borderRadius: "12px" }}>
           <h2>Добре дошли в Web Shop!</h2>
           <p>Моля, влезте в системата или се регистрирайте, за да продължите.</p>

@@ -31,11 +31,16 @@ public class MultipartConfig {
         // Това решава проблема с липсващите директории на Render.com
         factory.setFileSizeThreshold(DataSize.ofBytes(0));
         
+        // Задаваме location на null, за да не се опитва да създава директория
+        factory.setLocation(null);
+        
         return factory.createMultipartConfig();
     }
 
     @Bean
     public MultipartResolver multipartResolver() {
-        return new StandardServletMultipartResolver();
+        StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
+        resolver.setResolveLazily(true); // Разрешаваме lazy resolution за по-добра производителност
+        return resolver;
     }
 }

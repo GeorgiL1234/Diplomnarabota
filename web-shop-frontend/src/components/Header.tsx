@@ -99,6 +99,13 @@ export function Header({
             >
               {t.navOrders}
             </button>
+            <button
+              type="button"
+              className={`nav-btn ${view === "vip" ? "active" : ""}`}
+              onClick={() => handleViewChange("vip")}
+            >
+              VIP Обяви
+            </button>
           </>
         )}
         {loggedInEmail ? (

@@ -9,6 +9,7 @@ type CreateListingFormProps = {
   category: string;
   contactEmail: string;
   contactPhone: string;
+  paymentMethod: string;
   file: File | null;
   onTitleChange: (title: string) => void;
   onDescriptionChange: (desc: string) => void;
@@ -16,6 +17,7 @@ type CreateListingFormProps = {
   onCategoryChange: (cat: string) => void;
   onContactEmailChange: (email: string) => void;
   onContactPhoneChange: (phone: string) => void;
+  onPaymentMethodChange: (method: string) => void;
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: FormEvent) => void;
 };
@@ -28,6 +30,7 @@ export function CreateListingForm({
   category,
   contactEmail,
   contactPhone,
+  paymentMethod,
   file,
   onTitleChange,
   onDescriptionChange,
@@ -35,6 +38,7 @@ export function CreateListingForm({
   onCategoryChange,
   onContactEmailChange,
   onContactPhoneChange,
+  onPaymentMethodChange,
   onFileChange,
   onSubmit,
 }: CreateListingFormProps) {
@@ -106,6 +110,13 @@ export function CreateListingForm({
       <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px", fontStyle: "italic" }}>
         * Трябва да посочите поне email или телефон за контакт
       </p>
+      <div className="form-group">
+        <label>Начин на плащане:</label>
+        <select value={paymentMethod} onChange={(e) => onPaymentMethodChange(e.target.value)}>
+          <option value="card">Карта</option>
+          <option value="cash">Кеш</option>
+        </select>
+      </div>
       <div className="form-group">
         <label>Снимка *</label>
         <input type="file" accept="image/*" onChange={onFileChange} required />

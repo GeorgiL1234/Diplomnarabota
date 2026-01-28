@@ -38,6 +38,10 @@ public class Item {
     @Column(nullable = false)
     private Boolean isVip = false;
 
+    // Начин на плащане - карта или кеш
+    @Column(nullable = true)
+    private String paymentMethod;
+
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews;
 
@@ -116,5 +120,13 @@ public class Item {
 
     public void setIsVip(Boolean isVip) {
         this.isVip = isVip != null ? isVip : false;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 }

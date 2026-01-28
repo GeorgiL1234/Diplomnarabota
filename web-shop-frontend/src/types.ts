@@ -9,6 +9,7 @@ export type Item = {
   contactEmail?: string | null;
   contactPhone?: string | null;
   isVip?: boolean | null;
+  paymentMethod?: string | null;
 };
 
 export type Favorite = {
@@ -45,7 +46,7 @@ export type ItemOrder = {
   status: string;
 };
 
-export type View = "all" | "mine" | "login" | "register" | "detail" | "messages" | "orders" | "favorites";
+export type View = "all" | "mine" | "login" | "register" | "detail" | "messages" | "orders" | "favorites" | "vip";
 
 export type Language = "bg" | "en" | "ru";
 
