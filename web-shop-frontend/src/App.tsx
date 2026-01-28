@@ -184,7 +184,7 @@ function App() {
       }
       
       // Проверка дали отговорът е успешен
-      if (responseText.includes("REGISTER_OK") || res.status === 200) {
+      if (res.status === 200 && (responseText.includes("REGISTER_OK") || responseText.trim() === "REGISTER_OK")) {
         console.log("Registration successful, logging in user:", registerEmail);
         setMessage(t.successRegistration);
         // След успешна регистрация, автоматично влизаме
@@ -194,7 +194,9 @@ function App() {
         setFullName("");
         setView("all");
         // Зареди items след успешна регистрация
-        loadItems();
+        setTimeout(() => {
+          loadItems();
+        }, 100);
       } else {
         throw new Error(responseText || t.errorRegistration);
       }
@@ -233,7 +235,7 @@ function App() {
       }
       
       // Проверка дали отговорът е успешен
-      if (responseText.includes("LOGIN_OK") || res.status === 200) {
+      if (res.status === 200 && (responseText.includes("LOGIN_OK") || responseText.trim() === "LOGIN_OK")) {
         console.log("Login successful, setting loggedInEmail:", loginEmail);
         setLoggedInEmail(loginEmail);
         setMessage(t.successLogin);
@@ -241,7 +243,9 @@ function App() {
         setLoginPassword("");
         setView("all"); // След успешен вход, отиваме на обявите
         // Зареди items след успешен вход
-        loadItems();
+        setTimeout(() => {
+          loadItems();
+        }, 100);
       } else {
         throw new Error(responseText || t.errorLogin);
       }
