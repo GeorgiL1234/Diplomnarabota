@@ -49,12 +49,23 @@ public class FileUploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("ownerEmail") String ownerEmail) {
 
+        System.out.println("========================================");
+        System.out.println(">>> UPLOAD ENDPOINT CALLED <<<");
+        System.out.println("Timestamp: " + System.currentTimeMillis());
+        System.out.println("Item ID: " + itemId);
+        System.out.println("Owner email: " + ownerEmail);
+        System.out.println("File object: " + (file != null ? "NOT NULL" : "NULL"));
+        
         try {
-            System.out.println(">>> UPLOAD HIT <<<");
-            System.out.println("Item ID: " + itemId);
-            System.out.println("File name: " + (file != null ? file.getOriginalFilename() : "null"));
-            System.out.println("File size: " + (file != null ? file.getSize() : "null"));
-            System.out.println("Owner email: " + ownerEmail);
+            if (file == null) {
+                System.out.println("ERROR: File is null!");
+                return ResponseEntity.badRequest().body("File is null");
+            }
+            
+            System.out.println("File name: " + file.getOriginalFilename());
+            System.out.println("File size: " + file.getSize() + " bytes");
+            System.out.println("File content type: " + file.getContentType());
+            System.out.println("File isEmpty: " + file.isEmpty());
 
             if (file == null || file.isEmpty()) {
                 System.out.println("Uploaded file is empty or null!");
