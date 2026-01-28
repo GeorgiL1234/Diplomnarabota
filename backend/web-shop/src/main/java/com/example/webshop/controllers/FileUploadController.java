@@ -69,42 +69,8 @@ public class FileUploadController {
                 return ResponseEntity.status(403).body("You can only upload images to your own listings");
             }
 
-            File uploadDir = new File(UPLOAD_DIR);
-            System.out.println("Creating upload directory: " + uploadDir.getAbsolutePath());
-            System.out.println("Directory exists: " + uploadDir.exists());
-            System.out.println("Directory can write: " + uploadDir.canWrite());
-            
-            if (!uploadDir.exists()) {
-                boolean created = uploadDir.mkdirs();
-                System.out.println("Directory created: " + created);
-                if (!created && !uploadDir.exists()) {
-                    System.out.println("ERROR: Could not create upload directory!");
-                    // Опитай се с абсолютен път
-                    String altPath = "/tmp/uploads/";
-                    File altDir = new File(altPath);
-                    if (altDir.mkdirs() || altDir.exists()) {
-                        uploadDir = altDir;
-                        UPLOAD_DIR = altPath;
-                        System.out.println("Using alternative path: " + altPath);
-                    } else {
-                        return ResponseEntity.status(500).body("Could not create upload directory: " + uploadDir.getAbsolutePath());
-                    }
-                }
-            }
-
-            // Проверка за права за запис
-            if (!uploadDir.canWrite()) {
-                System.out.println("ERROR: No write permissions to upload directory!");
-                return ResponseEntity.status(500).body("No write permissions to upload directory: " + uploadDir.getAbsolutePath());
-            }
-
-            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            // Санитизирай името на файла
-            fileName = fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
-            File destination = new File(uploadDir, fileName);
-            System.out.println("Saving file to: " + destination.getAbsolutePath());
-
             // На Render.com файловата система е ефемерна, затова директно запазваме като base64
+            // Това гарантира, че снимките винаги ще се запазят, дори и файловата система да не работи
             // Това гарантира, че снимките винаги ще се запазят, дори и файловата система да не работи
             try {
                 System.out.println("Saving image as base64 in database (Render.com compatible)...");
