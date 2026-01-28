@@ -2,6 +2,8 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -37,13 +39,15 @@ public class FileUploadController {
     }
 
     private final ItemRepository itemRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public FileUploadController(ItemRepository itemRepository) {
         this.itemRepository = itemRepository;
     }
 
     @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Transactional
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
             @RequestParam("file") MultipartFile file,
@@ -119,9 +123,15 @@ public class FileUploadController {
                 item.setImageUrl(dataUri);
                 System.out.println("Image URL set on item");
                 
-                System.out.println("Saving item to repository...");
-                Item savedItem = itemRepository.save(item);
+                // Reload item to ensure we have the latest version
+                entityManager.refresh(item);
+                
+                System.out.println("Saving item to repository with saveAndFlush...");
+                Item savedItem = itemRepository.saveAndFlush(item);
                 System.out.println("Item saved successfully with ID: " + savedItem.getId());
+                
+                // Clear persistence context to force reload
+                entityManager.clear();
                 
                 // Verify the save worked
                 Item verifyItem = itemRepository.findById(itemId).orElse(null);
@@ -138,6 +148,7 @@ public class FileUploadController {
                 if (e.getCause() != null) {
                     System.out.println("Cause type: " + e.getCause().getClass().getName());
                     System.out.println("Cause message: " + e.getCause().getMessage());
+                    e.getCause().printStackTrace();
                 }
                 String errorMsg = "Failed to save to database: " + e.getMessage();
                 if (e.getCause() != null) {
