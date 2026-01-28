@@ -42,7 +42,7 @@ function App() {
   const [newItemCategory, setNewItemCategory] = useState("Други");
   const [newItemContactEmail, setNewItemContactEmail] = useState("");
   const [newItemContactPhone, setNewItemContactPhone] = useState("");
-  const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("card");
+  const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("cash_on_delivery");
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
 
   // reviews
@@ -321,7 +321,7 @@ function App() {
       setNewItemCategory("Други");
       setNewItemContactEmail("");
       setNewItemContactPhone("");
-      setNewItemPaymentMethod("card");
+      setNewItemPaymentMethod("cash_on_delivery");
       const fileToUpload = newItemFile;
       setNewItemFile(null);
       setShowCreateForm(false);

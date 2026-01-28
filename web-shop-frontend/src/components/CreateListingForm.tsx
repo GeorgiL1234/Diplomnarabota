@@ -113,8 +113,8 @@ export function CreateListingForm({
       <div className="form-group">
         <label>Начин на плащане:</label>
         <select value={paymentMethod} onChange={(e) => onPaymentMethodChange(e.target.value)}>
-          <option value="card">Карта</option>
-          <option value="cash">Кеш</option>
+          <option value="cash_on_delivery">Наложен платеж</option>
+          <option value="bank_transfer">Банков път</option>
         </select>
       </div>
       <div className="form-group">
