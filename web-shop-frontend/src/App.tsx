@@ -154,6 +154,12 @@ function App() {
     setError(null);
     setMessage(null);
     
+    // Валидация на празни полета
+    if (!registerEmail || !registerPassword || !fullName) {
+      setError("Моля, попълнете всички полета");
+      return;
+    }
+    
     // Валидация на паролата
     const passwordError = validatePassword(registerPassword);
     if (passwordError) {
@@ -162,25 +168,36 @@ function App() {
     }
     
     try {
+      console.log("Register attempt:", { email: registerEmail, fullName });
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({ email: registerEmail, password: registerPassword, fullName }),
       });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Register error response:", errorText);
-        throw new Error(errorText || t.errorRegistration);
-      }
+      
       const responseText = await res.text();
-      console.log("Register response:", responseText);
-      setMessage(t.successRegistration);
-      // След успешна регистрация, автоматично влизаме
-      setLoggedInEmail(registerEmail);
-      setRegisterEmail("");
-      setRegisterPassword("");
-      setFullName("");
-      setView("all");
+      console.log("Register response status:", res.status, "body:", responseText);
+      
+      if (!res.ok) {
+        console.error("Register error response:", responseText);
+        throw new Error(responseText || t.errorRegistration);
+      }
+      
+      // Проверка дали отговорът е успешен
+      if (responseText.includes("REGISTER_OK") || res.status === 200) {
+        console.log("Registration successful, logging in user:", registerEmail);
+        setMessage(t.successRegistration);
+        // След успешна регистрация, автоматично влизаме
+        setLoggedInEmail(registerEmail);
+        setRegisterEmail("");
+        setRegisterPassword("");
+        setFullName("");
+        setView("all");
+        // Зареди items след успешна регистрация
+        loadItems();
+      } else {
+        throw new Error(responseText || t.errorRegistration);
+      }
     } catch (err) {
       console.error("Register error:", err);
       setError(String(err));
@@ -200,26 +217,34 @@ function App() {
     }
     
     try {
+      console.log("Login attempt:", { email: loginEmail });
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
       
+      const responseText = await res.text();
+      console.log("Login response status:", res.status, "body:", responseText);
+      
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Login error response:", errorText);
-        throw new Error(errorText || t.errorLogin);
+        console.error("Login error response:", responseText);
+        throw new Error(responseText || t.errorLogin);
       }
       
-      const responseText = await res.text();
-      console.log("Login response:", responseText);
-      
-      setLoggedInEmail(loginEmail);
-      setMessage(t.successLogin);
-      setLoginEmail("");
-      setLoginPassword("");
-      setView("all"); // След успешен вход, отиваме на обявите
+      // Проверка дали отговорът е успешен
+      if (responseText.includes("LOGIN_OK") || res.status === 200) {
+        console.log("Login successful, setting loggedInEmail:", loginEmail);
+        setLoggedInEmail(loginEmail);
+        setMessage(t.successLogin);
+        setLoginEmail("");
+        setLoginPassword("");
+        setView("all"); // След успешен вход, отиваме на обявите
+        // Зареди items след успешен вход
+        loadItems();
+      } else {
+        throw new Error(responseText || t.errorLogin);
+      }
     } catch (err) {
       console.error("Login error:", err);
       setError(String(err));
