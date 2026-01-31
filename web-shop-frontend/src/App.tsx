@@ -431,26 +431,68 @@ function App() {
       return;
     }
     
+    // Валидация: цената трябва да е валидно число
+    const priceValue = parseFloat(newItemPrice);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      setError(language === "bg" ? "Моля, въведете валидна цена (по-голяма от 0)" : language === "en" ? "Please enter a valid price (greater than 0)" : "Пожалуйста, введите действительную цену (больше 0)");
+      return;
+    }
+    
+    // Валидация: заглавието и описанието не трябва да са празни
+    if (!newItemTitle.trim()) {
+      setError(language === "bg" ? "Моля, въведете заглавие" : language === "en" ? "Please enter a title" : "Пожалуйста, введите заголовок");
+      return;
+    }
+    
+    if (!newItemDescription.trim()) {
+      setError(language === "bg" ? "Моля, въведете описание" : language === "en" ? "Please enter a description" : "Пожалуйста, введите описание");
+      return;
+    }
+    
     try {
+      console.log("Creating listing:", {
+        title: newItemTitle,
+        description: newItemDescription,
+        price: newItemPrice,
+        category: newItemCategory,
+        contactEmail: emailTrimmed,
+        contactPhone: phoneTrimmed,
+        paymentMethod: newItemPaymentMethod,
+        isVip: newItemIsVip,
+      });
+      
       const res = await fetch(`${API_BASE}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({
-          title: newItemTitle,
-          description: newItemDescription,
-          price: parseFloat(newItemPrice),
+          title: newItemTitle.trim(),
+          description: newItemDescription.trim(),
+          price: priceValue,
           ownerEmail: loggedInEmail,
           category: newItemCategory,
           contactEmail: emailTrimmed || null,
           contactPhone: phoneTrimmed || null,
           paymentMethod: newItemPaymentMethod || null,
+          isVip: false, // Винаги създаваме като не-VIP първо, после активираме ако е платено
         }),
       });
+      
+      console.log("Create listing response status:", res.status);
+      
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(errorText || t.errorCreateListing);
+        console.error("Create listing error:", errorText);
+        // Опитай се да парсне JSON грешката ако е възможно
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.error || errorJson.message || t.errorCreateListing);
+        } catch {
+          throw new Error(errorText || t.errorCreateListing);
+        }
       }
+      
       const createdItem = await res.json();
+      console.log("Listing created successfully:", createdItem);
       
       setNewItemTitle("");
       setNewItemDescription("");
