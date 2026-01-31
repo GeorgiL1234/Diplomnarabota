@@ -27,7 +27,20 @@ function App() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [fullName, setFullName] = useState("");
   
-  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
+  // Запазваме email в localStorage за персистентност
+  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(() => {
+    return localStorage.getItem("loggedInEmail");
+  });
+  
+  // Wrapper функция за setLoggedInEmail която също обновява localStorage
+  const updateLoggedInEmail = (email: string | null) => {
+    if (email) {
+      localStorage.setItem("loggedInEmail", email);
+    } else {
+      localStorage.removeItem("loggedInEmail");
+    }
+    setLoggedInEmail(email);
+  };
 
   // items
   const [items, setItems] = useState<Item[]>([]);
@@ -65,7 +78,11 @@ function App() {
   const [newAnswer, setNewAnswer] = useState<{ [key: number]: string }>({});
 
   // view / навигация
-  const [view, setView] = useState<View>("login"); // Започваме с login страницата
+  // Проверяваме дали има запазен email в localStorage при зареждане
+  const [view, setView] = useState<View>(() => {
+    const savedEmail = localStorage.getItem("loggedInEmail");
+    return savedEmail ? "all" : "login";
+  });
   
   // Debug: винаги показваме нещо
   useEffect(() => {
@@ -187,21 +204,29 @@ function App() {
       }
       
       // Проверка дали отговорът е успешен
-      if (res.status === 200 && (responseText.includes("REGISTER_OK") || responseText.trim() === "REGISTER_OK")) {
+      const trimmedResponse = responseText.trim();
+      if (res.status === 200 && (trimmedResponse === "REGISTER_OK" || trimmedResponse.includes("REGISTER_OK"))) {
         console.log("Registration successful, logging in user:", registerEmail);
         setMessage(t.successRegistration);
-        // След успешна регистрация, автоматично влизаме
-        setLoggedInEmail(registerEmail);
+        
+        // Изчисти формата първо
+        const registeredEmail = registerEmail; // Запази email преди да изчистиш state
         setRegisterEmail("");
         setRegisterPassword("");
         setFullName("");
+        
+        // След успешна регистрация, автоматично влизаме
+        updateLoggedInEmail(registeredEmail);
         setView("all");
-        // Зареди items след успешна регистрация
+        
+        // Зареди items след успешна регистрация с по-дълго забавяне за да се обнови state
         setTimeout(() => {
+          console.log("Loading items after registration, loggedInEmail:", registeredEmail);
           loadItems();
-        }, 100);
+        }, 300);
       } else {
-        throw new Error(responseText || t.errorRegistration);
+        console.error("Registration failed - unexpected response:", trimmedResponse);
+        throw new Error(trimmedResponse || t.errorRegistration);
       }
     } catch (err) {
       console.error("Register error:", err);
@@ -238,19 +263,28 @@ function App() {
       }
       
       // Проверка дали отговорът е успешен
-      if (res.status === 200 && (responseText.includes("LOGIN_OK") || responseText.trim() === "LOGIN_OK")) {
+      const trimmedResponse = responseText.trim();
+      if (res.status === 200 && (trimmedResponse === "LOGIN_OK" || trimmedResponse.includes("LOGIN_OK"))) {
         console.log("Login successful, setting loggedInEmail:", loginEmail);
-        setLoggedInEmail(loginEmail);
-        setMessage(t.successLogin);
+        
+        // Изчисти формата първо
+        const loggedInUserEmail = loginEmail; // Запази email преди да изчистиш state
         setLoginEmail("");
         setLoginPassword("");
+        
+        // Задай loggedInEmail и view
+        updateLoggedInEmail(loggedInUserEmail);
+        setMessage(t.successLogin);
         setView("all"); // След успешен вход, отиваме на обявите
-        // Зареди items след успешен вход
+        
+        // Зареди items след успешен вход с по-дълго забавяне за да се обнови state
         setTimeout(() => {
+          console.log("Loading items after login, loggedInEmail:", loggedInUserEmail);
           loadItems();
-        }, 100);
+        }, 300);
       } else {
-        throw new Error(responseText || t.errorLogin);
+        console.error("Login failed - unexpected response:", trimmedResponse);
+        throw new Error(trimmedResponse || t.errorLogin);
       }
     } catch (err) {
       console.error("Login error:", err);
@@ -259,7 +293,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    setLoggedInEmail(null);
+    updateLoggedInEmail(null);
     setMessage(t.loggedOut);
     setLoginEmail("");
     setLoginPassword("");
