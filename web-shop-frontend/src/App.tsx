@@ -16,6 +16,7 @@ import { MessagesPage } from "./components/MessagesPage";
 import { OrdersPage } from "./components/OrdersPage";
 import { FavoritesPage } from "./components/FavoritesPage";
 import { VipListingsPage } from "./components/VipListingsPage";
+import { VipPaymentForm } from "./components/VipPaymentForm";
 
 function App() {
   // auth - login state (отделни променливи за вход)
@@ -58,6 +59,10 @@ function App() {
   const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("cash_on_delivery");
   const [newItemIsVip, setNewItemIsVip] = useState(false);
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
+  
+  // VIP Payment state
+  const [showVipPayment, setShowVipPayment] = useState(false);
+  const [pendingVipItemId, setPendingVipItemId] = useState<number | null>(null);
 
   // reviews
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -319,6 +324,89 @@ function App() {
     setView("login");
   };
 
+  // Обработка на VIP плащане
+  const handleVipPayment = async () => {
+    if (!pendingVipItemId || !loggedInEmail) {
+      setError("Missing payment information");
+      return;
+    }
+
+    try {
+      setError(null);
+      setMessage(null);
+
+      // Стъпка 1: Създай плащането
+      const createPaymentRes = await fetch(`${API_BASE}/vip-payment/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({
+          itemId: pendingVipItemId,
+          ownerEmail: loggedInEmail,
+          paymentMethod: "card",
+        }),
+      });
+
+      if (!createPaymentRes.ok) {
+        const errorText = await createPaymentRes.text();
+        throw new Error(errorText || "Failed to create payment");
+      }
+
+      const paymentData = await createPaymentRes.json();
+      const paymentId = paymentData.paymentId;
+
+      // Стъпка 2: Завърши плащането (симулация - в реална система тук ще има интеграция с платежен процесор)
+      const completePaymentRes = await fetch(`${API_BASE}/vip-payment/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({
+          paymentId: paymentId,
+          ownerEmail: loggedInEmail,
+        }),
+      });
+
+      if (!completePaymentRes.ok) {
+        const errorText = await completePaymentRes.text();
+        throw new Error(errorText || "Failed to complete payment");
+      }
+
+      // Стъпка 3: Активирай VIP статуса
+      const activateVipRes = await fetch(`${API_BASE}/vip/activate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({
+          ownerEmail: loggedInEmail,
+          itemId: pendingVipItemId,
+        }),
+      });
+
+      if (!activateVipRes.ok) {
+        const errorText = await activateVipRes.text();
+        throw new Error(errorText || "Failed to activate VIP");
+      }
+
+      // Успешно плащане и активиране на VIP
+      setShowVipPayment(false);
+      setPendingVipItemId(null);
+      setMessage(`${t.successListingCreated} ${t.successVipActivated}`);
+      
+      // Презареди items и selectedItem
+      loadItems();
+      if (selectedItem && selectedItem.id === pendingVipItemId) {
+        const updatedItem = await fetch(`${API_BASE}/items/${pendingVipItemId}`).then(r => r.json());
+        setSelectedItem(updatedItem);
+      }
+    } catch (err) {
+      console.error("VIP payment error:", err);
+      setError(String(err));
+    }
+  };
+
+  const handleCancelVipPayment = () => {
+    setShowVipPayment(false);
+    setPendingVipItemId(null);
+    setMessage(t.successListingCreated);
+  };
+
   // създаване на обява
   const handleCreateListing = async (e: FormEvent) => {
     e.preventDefault();
@@ -377,26 +465,6 @@ function App() {
       setNewItemFile(null);
       setShowCreateForm(false);
       
-      // Ако е избрано VIP, активирай го веднага (плащането от 2€ се приема като направено)
-      if (shouldMakeVip && createdItem.id) {
-        try {
-          const vipRes = await fetch(`${API_BASE}/vip/activate`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json; charset=UTF-8" },
-            body: JSON.stringify({ ownerEmail: loggedInEmail, itemId: createdItem.id }),
-          });
-          if (vipRes.ok) {
-            const vipItem = await vipRes.json();
-            createdItem.isVip = vipItem.isVip;
-            setMessage(`${t.successListingCreated} ${t.successVipActivated}`);
-          } else {
-            console.error("Failed to activate VIP:", await vipRes.text());
-          }
-        } catch (vipErr) {
-          console.error("Error activating VIP:", vipErr);
-        }
-      }
-      
       // Зареди items първо
       loadItems();
       
@@ -404,8 +472,12 @@ function App() {
       setSelectedItem(createdItem);
       setReviews([]); // Празни ревюта, защото е нова обява
       setView("detail"); // Превключи към детайлен view
-      if (!shouldMakeVip) {
-        setMessage(t.successListingCreated);
+      setMessage(t.successListingCreated);
+      
+      // Ако е избрано VIP, покажи форма за плащане
+      if (shouldMakeVip && createdItem.id) {
+        setPendingVipItemId(createdItem.id);
+        setShowVipPayment(true);
       }
       
       // Ако има избрана снимка, качи я автоматично
@@ -1216,6 +1288,18 @@ function App() {
             Вход / Регистрация
           </button>
         </div>
+      )}
+
+      {/* VIP Payment Form Modal */}
+      {showVipPayment && pendingVipItemId && (
+        <VipPaymentForm
+          itemId={pendingVipItemId}
+          amount={2.0}
+          language={language}
+          onPaymentComplete={handleVipPayment}
+          onCancel={handleCancelVipPayment}
+          error={error}
+        />
       )}
     </div>
   );

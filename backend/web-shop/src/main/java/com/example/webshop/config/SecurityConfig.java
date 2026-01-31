@@ -32,6 +32,8 @@ public class SecurityConfig {
                         .requestMatchers("/orders/**").permitAll()
                         .requestMatchers("/item-orders/**").permitAll()
                         .requestMatchers("/upload/**").permitAll()
+                        .requestMatchers("/vip/**").permitAll()
+                        .requestMatchers("/vip-payment/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().permitAll())
                 
