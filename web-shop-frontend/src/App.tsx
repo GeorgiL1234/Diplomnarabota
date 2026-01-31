@@ -198,14 +198,21 @@ function App() {
       const responseText = await res.text();
       console.log("Register response status:", res.status, "body:", responseText);
       
-      if (!res.ok) {
+      // Първо проверяваме дали заявката е успешна
+      if (!res.ok || res.status !== 200) {
         console.error("Register error response:", responseText);
-        throw new Error(responseText || t.errorRegistration);
+        // Опитай се да парсне JSON грешката ако е възможно
+        try {
+          const errorJson = JSON.parse(responseText);
+          throw new Error(errorJson.error || errorJson.message || t.errorRegistration);
+        } catch {
+          throw new Error(responseText || t.errorRegistration);
+        }
       }
       
-      // Проверка дали отговорът е успешен
+      // Проверка дали отговорът е успешен (само ако status е 200)
       const trimmedResponse = responseText.trim();
-      if (res.status === 200 && (trimmedResponse === "REGISTER_OK" || trimmedResponse.includes("REGISTER_OK"))) {
+      if (trimmedResponse === "REGISTER_OK" || trimmedResponse.includes("REGISTER_OK")) {
         console.log("Registration successful, logging in user:", registerEmail);
         setMessage(t.successRegistration);
         
@@ -257,14 +264,21 @@ function App() {
       const responseText = await res.text();
       console.log("Login response status:", res.status, "body:", responseText);
       
-      if (!res.ok) {
+      // Първо проверяваме дали заявката е успешна
+      if (!res.ok || res.status !== 200) {
         console.error("Login error response:", responseText);
-        throw new Error(responseText || t.errorLogin);
+        // Опитай се да парсне JSON грешката ако е възможно
+        try {
+          const errorJson = JSON.parse(responseText);
+          throw new Error(errorJson.error || errorJson.message || t.errorLogin);
+        } catch {
+          throw new Error(responseText || t.errorLogin);
+        }
       }
       
-      // Проверка дали отговорът е успешен
+      // Проверка дали отговорът е успешен (само ако status е 200)
       const trimmedResponse = responseText.trim();
-      if (res.status === 200 && (trimmedResponse === "LOGIN_OK" || trimmedResponse.includes("LOGIN_OK"))) {
+      if (trimmedResponse === "LOGIN_OK" || trimmedResponse.includes("LOGIN_OK")) {
         console.log("Login successful, setting loggedInEmail:", loginEmail);
         
         // Изчисти формата първо
