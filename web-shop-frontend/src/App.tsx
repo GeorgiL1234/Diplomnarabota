@@ -43,6 +43,7 @@ function App() {
   const [newItemContactEmail, setNewItemContactEmail] = useState("");
   const [newItemContactPhone, setNewItemContactPhone] = useState("");
   const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("cash_on_delivery");
+  const [newItemIsVip, setNewItemIsVip] = useState(false);
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
 
   // reviews
@@ -158,7 +159,7 @@ function App() {
     
     // Валидация на празни полета
     if (!registerEmail || !registerPassword || !fullName) {
-      setError("Моля, попълнете всички полета");
+      setError(language === "bg" ? "Моля, попълнете всички полета" : language === "en" ? "Please fill in all fields" : "Пожалуйста, заполните все поля");
       return;
     }
     
@@ -216,7 +217,7 @@ function App() {
     
     // Валидация на празни полета
     if (!loginEmail || !loginPassword) {
-      setError("Моля, попълнете email и парола");
+      setError(language === "bg" ? "Моля, попълнете email и парола" : language === "en" ? "Please enter email and password" : "Пожалуйста, введите email и пароль");
       return;
     }
     
@@ -323,8 +324,30 @@ function App() {
       setNewItemContactPhone("");
       setNewItemPaymentMethod("cash_on_delivery");
       const fileToUpload = newItemFile;
+      const shouldMakeVip = newItemIsVip;
+      setNewItemIsVip(false);
       setNewItemFile(null);
       setShowCreateForm(false);
+      
+      // Ако е избрано VIP, активирай го веднага (плащането от 2€ се приема като направено)
+      if (shouldMakeVip && createdItem.id) {
+        try {
+          const vipRes = await fetch(`${API_BASE}/vip/activate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json; charset=UTF-8" },
+            body: JSON.stringify({ ownerEmail: loggedInEmail, itemId: createdItem.id }),
+          });
+          if (vipRes.ok) {
+            const vipItem = await vipRes.json();
+            createdItem.isVip = vipItem.isVip;
+            setMessage(`${t.successListingCreated} ${t.successVipActivated}`);
+          } else {
+            console.error("Failed to activate VIP:", await vipRes.text());
+          }
+        } catch (vipErr) {
+          console.error("Error activating VIP:", vipErr);
+        }
+      }
       
       // Зареди items първо
       loadItems();
@@ -333,7 +356,9 @@ function App() {
       setSelectedItem(createdItem);
       setReviews([]); // Празни ревюта, защото е нова обява
       setView("detail"); // Превключи към детайлен view
-      setMessage(t.successListingCreated);
+      if (!shouldMakeVip) {
+        setMessage(t.successListingCreated);
+      }
       
       // Ако има избрана снимка, качи я автоматично
       if (fileToUpload && createdItem.id) {
@@ -1048,6 +1073,7 @@ function App() {
           items={items}
           loggedInEmail={loggedInEmail}
           selectedCategory={selectedCategory}
+          language={language}
           onItemClick={openItem}
           onCategoryChange={setSelectedCategory}
         />
@@ -1079,6 +1105,8 @@ function App() {
               contactEmail={newItemContactEmail}
               contactPhone={newItemContactPhone}
               paymentMethod={newItemPaymentMethod}
+              isVip={newItemIsVip}
+              language={language}
               file={newItemFile}
               onTitleChange={setNewItemTitle}
               onDescriptionChange={setNewItemDescription}
@@ -1087,6 +1115,7 @@ function App() {
               onContactEmailChange={setNewItemContactEmail}
               onContactPhoneChange={setNewItemContactPhone}
               onPaymentMethodChange={setNewItemPaymentMethod}
+              onVipChange={setNewItemIsVip}
               onFileChange={handleNewItemFileChange}
               onSubmit={handleCreateListing}
             />
@@ -1119,6 +1148,7 @@ function App() {
               view={view}
               loggedInEmail={loggedInEmail}
               selectedCategory={selectedCategory}
+              language={language}
               onItemClick={openItem}
             />
           </div>

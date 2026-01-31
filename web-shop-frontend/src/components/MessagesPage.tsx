@@ -83,7 +83,7 @@ export function MessagesPage({
                 .filter((it) => it.ownerEmail !== loggedInEmail)
                 .slice(0, 6)
                 .map((it) => (
-                  <ItemCard key={it.id} item={it} onClick={() => onSelectItem(it)} />
+                  <ItemCard key={it.id} item={it} language={language} onClick={() => onSelectItem(it)} />
                 ))}
             </div>
           </div>

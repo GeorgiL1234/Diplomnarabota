@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import type { Language } from "../translations";
+import { translations, type Language } from "../translations";
 
 type LoginPageProps = {
   email: string;
@@ -17,18 +17,20 @@ export function LoginPage({
   setEmail,
   password,
   setPassword,
-  language: _language,
+  language,
   handleLogin,
   onSwitchToRegister,
   error,
 }: LoginPageProps) {
+  const t = translations[language] || translations["bg"];
+  
   return (
     <section className="auth-section">
-      <h2>Вход</h2>
+      <h2>{t.login}</h2>
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleLogin} className="auth-form">
         <div className="form-group">
-          <label>Email:</label>
+          <label>{t.email}:</label>
           <input
             type="email"
             value={email}
@@ -38,7 +40,7 @@ export function LoginPage({
           />
         </div>
         <div className="form-group">
-          <label>Парола:</label>
+          <label>{t.password}:</label>
           <input
             type="password"
             value={password}
@@ -48,13 +50,13 @@ export function LoginPage({
           />
         </div>
         <button type="submit" className="btn-primary">
-          Вход
+          {t.login}
         </button>
       </form>
       <div style={{ marginTop: "20px", textAlign: "center" }}>
-        <p>Нямате акаунт?</p>
+        <p>{language === "bg" ? "Нямате акаунт?" : language === "en" ? "Don't have an account?" : "Нет аккаунта?"}</p>
         <button type="button" className="btn-secondary" onClick={onSwitchToRegister}>
-          Регистрирайте се
+          {t.register}
         </button>
       </div>
     </section>

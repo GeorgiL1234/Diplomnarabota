@@ -1,10 +1,12 @@
 import type { Item } from "../types";
+import type { Language } from "../translations";
 import { ItemList } from "./ItemList";
 
 type VipListingsPageProps = {
   items: Item[];
   loggedInEmail: string | null;
   selectedCategory: string;
+  language: Language;
   onItemClick: (item: Item) => void;
   onCategoryChange: (category: string) => void;
 };
@@ -13,6 +15,7 @@ export function VipListingsPage({
   items,
   loggedInEmail,
   selectedCategory,
+  language,
   onItemClick,
   onCategoryChange,
 }: VipListingsPageProps) {
@@ -60,6 +63,7 @@ export function VipListingsPage({
             view="all"
             loggedInEmail={loggedInEmail}
             selectedCategory={selectedCategory}
+            language={language}
             onItemClick={onItemClick}
           />
         )}
