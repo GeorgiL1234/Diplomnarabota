@@ -324,7 +324,7 @@ export function VipPaymentForm({
                 cursor: "pointer",
               }}
             >
-              {language === "bg" ? "Плати 2€" : language === "en" ? "Pay €2" : "Оплатить 2€"}
+              {language === "bg" ? "Готово" : language === "en" ? "Complete Payment" : "Готово"}
             </button>
           </div>
         </form>

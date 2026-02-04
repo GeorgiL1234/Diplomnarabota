@@ -14,6 +14,12 @@ public class ItemOrder {
     @Column(nullable = false)
     private String customerEmail;
 
+    @Column(nullable = true)
+    private String customerName;
+
+    @Column(nullable = true)
+    private String customerPhone;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "item_id")
     private Item item;

@@ -28,6 +28,8 @@ public class ItemOrderService {
 
         ItemOrder order = new ItemOrder();
         order.setCustomerEmail(request.getCustomerEmail());
+        order.setCustomerName(request.getCustomerName());
+        order.setCustomerPhone(request.getCustomerPhone());
         order.setItem(item);
         order.setPaymentMethod(request.getPaymentMethod());
         order.setDeliveryMethod(request.getDeliveryMethod());

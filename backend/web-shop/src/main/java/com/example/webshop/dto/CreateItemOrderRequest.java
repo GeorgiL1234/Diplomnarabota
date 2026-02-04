@@ -3,6 +3,8 @@ package com.example.webshop.dto;
 public class CreateItemOrderRequest {
 
     private String customerEmail;
+    private String customerName;
+    private String customerPhone;
     private Long itemId;
     private String paymentMethod; // "card", "revolut", "cash_on_delivery"
     private String deliveryMethod; // "speedy", "econt"

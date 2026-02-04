@@ -77,6 +77,9 @@ function App() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
 
   // messages/questions
   const [newQuestion, setNewQuestion] = useState("");
@@ -394,15 +397,26 @@ function App() {
       }
 
       // Успешно плащане и активиране на VIP
+      setMessage(language === "bg" 
+        ? "VIP статусът е активиран успешно! Плащането от 2€ е прието." 
+        : language === "en" 
+        ? "VIP status activated successfully! Payment of €2 has been accepted."
+        : "VIP статус успешно активирован! Платеж 2€ принят.");
+      
+      // Затвори VIP payment модала
       setShowVipPayment(false);
       setPendingVipItemId(null);
-      setMessage(`${t.successListingCreated} ${t.successVipActivated}`);
+      setError(null); // Изчисти грешките
       
       // Презареди items и selectedItem
-      loadItems();
+      await loadItems();
       if (selectedItem && selectedItem.id === pendingVipItemId) {
-        const updatedItem = await fetch(`${API_BASE}/items/${pendingVipItemId}`).then(r => r.json());
-        setSelectedItem(updatedItem);
+        try {
+          const updatedItem = await fetch(`${API_BASE}/items/${pendingVipItemId}`).then(r => r.json());
+          setSelectedItem(updatedItem);
+        } catch (err) {
+          console.error("Failed to reload item:", err);
+        }
       }
     } catch (err) {
       console.error("VIP payment error:", err);
@@ -996,10 +1010,22 @@ function App() {
   const handleCreateOrder = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedItem || !loggedInEmail) return;
+    
+    // Валидация на задължителните полета
+    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
+      setError(language === "bg" 
+        ? "Моля, попълнете всички задължителни полета (име, телефон, email)" 
+        : language === "en" 
+        ? "Please fill in all required fields (name, phone, email)"
+        : "Пожалуйста, заполните все обязательные поля (имя, телефон, email)");
+      return;
+    }
+    
     if (!paymentMethod || !deliveryMethod || !deliveryAddress.trim()) {
       setError(t.orderRequired);
       return;
     }
+    
     setError(null);
     setMessage(null);
     try {
@@ -1007,19 +1033,27 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({
-          customerEmail: loggedInEmail,
+          customerEmail: customerEmail.trim(),
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
           itemId: selectedItem.id,
           paymentMethod: paymentMethod,
           deliveryMethod: deliveryMethod,
-          deliveryAddress: deliveryAddress,
+          deliveryAddress: deliveryAddress.trim(),
         }),
       });
-      if (!res.ok) throw new Error(t.errorCreateOrder);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || t.errorCreateOrder);
+      }
       setMessage(t.successOrderCreated);
       setShowOrderForm(false);
       setPaymentMethod("");
       setDeliveryMethod("");
       setDeliveryAddress("");
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
       // Презареди поръчките ако сме на страницата за поръчки
       if (view === "orders") {
         await loadAllOrders();
@@ -1179,6 +1213,9 @@ function App() {
           paymentMethod={paymentMethod}
           deliveryMethod={deliveryMethod}
           deliveryAddress={deliveryAddress}
+          customerName={customerName}
+          customerPhone={customerPhone}
+          customerEmail={customerEmail}
           reviewRating={reviewRating}
           reviewComment={reviewComment}
           file={file}
@@ -1194,6 +1231,9 @@ function App() {
           onPaymentMethodChange={setPaymentMethod}
           onDeliveryMethodChange={setDeliveryMethod}
           onDeliveryAddressChange={setDeliveryAddress}
+          onCustomerNameChange={setCustomerName}
+          onCustomerPhoneChange={setCustomerPhone}
+          onCustomerEmailChange={setCustomerEmail}
           onCreateOrder={handleCreateOrder}
           onFileChange={handleFileChange}
           onUpload={handleUpload}

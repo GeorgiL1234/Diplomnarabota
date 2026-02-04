@@ -14,6 +14,9 @@ type ItemDetailProps = {
   paymentMethod: string;
   deliveryMethod: string;
   deliveryAddress: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
   reviewRating: number;
   reviewComment: string;
   file: File | null;
@@ -25,6 +28,9 @@ type ItemDetailProps = {
   onPaymentMethodChange: (method: string) => void;
   onDeliveryMethodChange: (method: string) => void;
   onDeliveryAddressChange: (address: string) => void;
+  onCustomerNameChange: (name: string) => void;
+  onCustomerPhoneChange: (phone: string) => void;
+  onCustomerEmailChange: (email: string) => void;
   onCreateOrder: (e: FormEvent) => void;
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onUpload: () => void;
@@ -44,6 +50,9 @@ export function ItemDetail({
   paymentMethod,
   deliveryMethod,
   deliveryAddress,
+  customerName,
+  customerPhone,
+  customerEmail,
   reviewRating,
   reviewComment,
   file,
@@ -55,6 +64,9 @@ export function ItemDetail({
   onPaymentMethodChange,
   onDeliveryMethodChange,
   onDeliveryAddressChange,
+  onCustomerNameChange,
+  onCustomerPhoneChange,
+  onCustomerEmailChange,
   onCreateOrder,
   onFileChange,
   onUpload,
@@ -128,6 +140,41 @@ export function ItemDetail({
           {showOrderForm && item.ownerEmail && item.ownerEmail !== loggedInEmail && (
             <form onSubmit={onCreateOrder} className="order-form">
               <h3>{t.orderTitle}</h3>
+              
+              {/* Лична информация */}
+              <div className="form-group">
+                <label>{language === "bg" ? "Име:" : language === "en" ? "Full Name:" : "Имя:"} *</label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => onCustomerNameChange(e.target.value)}
+                  placeholder={language === "bg" ? "Иван Иванов" : language === "en" ? "John Doe" : "Иван Иванов"}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>{language === "bg" ? "Телефон:" : language === "en" ? "Phone:" : "Телефон:"} *</label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => onCustomerPhoneChange(e.target.value)}
+                  placeholder={language === "bg" ? "+359 888 123 456" : language === "en" ? "+1 234 567 8900" : "+7 123 456 7890"}
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>{language === "bg" ? "Email:" : language === "en" ? "Email:" : "Email:"} *</label>
+                <input
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => onCustomerEmailChange(e.target.value)}
+                  placeholder={language === "bg" ? "email@example.com" : language === "en" ? "email@example.com" : "email@example.com"}
+                  required
+                />
+              </div>
+              
               <div className="form-group">
                 <label>{t.paymentMethod}</label>
                 <select
