@@ -144,6 +144,12 @@ export function VipPaymentForm({
       alignItems: "center",
       justifyContent: "center",
       zIndex: 1000,
+      pointerEvents: "auto",
+    }} onClick={(e) => {
+      // Затвори модала при клик извън формата (само ако не се обработва)
+      if (!isProcessing && e.target === e.currentTarget) {
+        onCancel();
+      }
     }}>
       <div className="payment-form" style={{
         backgroundColor: "white",
