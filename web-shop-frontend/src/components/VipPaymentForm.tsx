@@ -152,6 +152,10 @@ export function VipPaymentForm({
         maxWidth: "500px",
         width: "90%",
         boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+        pointerEvents: "auto",
+      }} onClick={(e) => {
+        // Спре разпространението на клика, за да не се затваря формата при клик върху нея
+        e.stopPropagation();
       }}>
         <h2 style={{ marginTop: 0 }}>
           {language === "bg" ? "Плащане за VIP статус" : language === "en" ? "VIP Status Payment" : "Оплата VIP статуса"}
@@ -209,12 +213,15 @@ export function VipPaymentForm({
               placeholder={language === "bg" ? "1234 5678 9012 3456" : language === "en" ? "1234 5678 9012 3456" : "1234 5678 9012 3456"}
               maxLength={19}
               required
+              disabled={isProcessing}
               style={{
                 width: "100%",
                 padding: "12px",
                 borderRadius: "8px",
                 border: "1px solid #e5e7eb",
                 fontSize: "16px",
+                backgroundColor: isProcessing ? "#f3f4f6" : "white",
+                cursor: isProcessing ? "not-allowed" : "text",
               }}
             />
           </div>
@@ -229,12 +236,15 @@ export function VipPaymentForm({
               onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
               placeholder={language === "bg" ? "ИВАН ИВАНОВ" : language === "en" ? "JOHN DOE" : "ИВАН ИВАНОВ"}
               required
+              disabled={isProcessing}
               style={{
                 width: "100%",
                 padding: "12px",
                 borderRadius: "8px",
                 border: "1px solid #e5e7eb",
                 fontSize: "16px",
+                backgroundColor: isProcessing ? "#f3f4f6" : "white",
+                cursor: isProcessing ? "not-allowed" : "text",
               }}
             />
           </div>
@@ -254,12 +264,15 @@ export function VipPaymentForm({
                 placeholder="MM/YY"
                 maxLength={5}
                 required
+                disabled={isProcessing}
                 style={{
                   width: "100%",
                   padding: "12px",
                   borderRadius: "8px",
                   border: "1px solid #e5e7eb",
                   fontSize: "16px",
+                  backgroundColor: isProcessing ? "#f3f4f6" : "white",
+                  cursor: isProcessing ? "not-allowed" : "text",
                 }}
               />
             </div>
@@ -277,12 +290,15 @@ export function VipPaymentForm({
                 placeholder="123"
                 maxLength={4}
                 required
+                disabled={isProcessing}
                 style={{
                   width: "100%",
                   padding: "12px",
                   borderRadius: "8px",
                   border: "1px solid #e5e7eb",
                   fontSize: "16px",
+                  backgroundColor: isProcessing ? "#f3f4f6" : "white",
+                  cursor: isProcessing ? "not-allowed" : "text",
                 }}
               />
             </div>

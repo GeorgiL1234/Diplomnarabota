@@ -555,73 +555,79 @@ function App() {
         setShowVipPayment(true);
       }
       
-      // Ако има избрана снимка, качи я автоматично
+      // Ако има избрана снимка, качи я автоматично (асинхронно, без да блокира UI)
       if (fileToUpload && createdItem.id) {
-        try {
-          console.log('Uploading image for item:', createdItem.id);
-          console.log('File:', fileToUpload.name, fileToUpload.size, 'bytes');
-          const formData = new FormData();
-          formData.append("file", fileToUpload);
-          formData.append("ownerEmail", loggedInEmail);
-          console.log('Sending upload request to:', `${API_BASE}/upload/${createdItem.id}`);
-          
-          const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
-            method: "POST",
-            body: formData,
-          });
-          
-          console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
-          
-          if (uploadRes.ok) {
-            const responseText = await uploadRes.text();
-            console.log('Upload response:', responseText);
-            setMessage(t.successListingImageUploaded);
-            // Презареди items и обнови selectedItem, за да видим новата снимка
-            setTimeout(() => {
-              loadItems();
-              // Презареди selectedItem с актуализираните данни
-              fetch(`${API_BASE}/items/${createdItem.id}`)
-                .then((res) => res.json())
-                .then((updated) => setSelectedItem(updated))
-                .catch(() => {});
-            }, 500);
-          } else {
-            const errorText = await uploadRes.text();
-            console.error('Upload failed:', uploadRes.status, errorText);
+        // Изпълни качването асинхронно, без да блокира UI
+        (async () => {
+          try {
+            console.log('Uploading image for item:', createdItem.id);
+            console.log('File:', fileToUpload.name, fileToUpload.size, 'bytes');
+            const formData = new FormData();
+            formData.append("file", fileToUpload);
+            formData.append("ownerEmail", loggedInEmail);
+            console.log('Sending upload request to:', `${API_BASE}/upload/${createdItem.id}`);
             
-            // Опитай се да парсне JSON грешката ако е възможно
-            let errorMessage = errorText;
-            try {
-              const errorJson = JSON.parse(errorText);
-              errorMessage = errorJson.error || errorJson.message || errorText;
-            } catch {
-              // Ако не е JSON, използвай текста както е
-              errorMessage = errorText;
+            const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
+              method: "POST",
+              body: formData,
+            });
+            
+            console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
+            
+            if (uploadRes.ok) {
+              const responseText = await uploadRes.text();
+              console.log('Upload response:', responseText);
+              // Покажи съобщение само ако не сме в VIP payment модал
+              if (!showVipPayment) {
+                setMessage(t.successListingImageUploaded);
+              }
+              // Презареди items и обнови selectedItem, за да видим новата снимка
+              setTimeout(() => {
+                loadItems();
+                // Презареди selectedItem с актуализираните данни
+                fetch(`${API_BASE}/items/${createdItem.id}`)
+                  .then((res) => res.json())
+                  .then((updated) => setSelectedItem(updated))
+                  .catch(() => {});
+              }, 500);
+            } else {
+              const errorText = await uploadRes.text();
+              console.error('Upload failed:', uploadRes.status, errorText);
+              
+              // Опитай се да парсне JSON грешката ако е възможно
+              let errorMessage = errorText;
+              try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error || errorJson.message || errorText;
+              } catch {
+                // Ако не е JSON, използвай текста както е
+                errorMessage = errorText;
+              }
+              
+              // Покажи грешката само ако не сме в VIP payment модал
+              if (!showVipPayment) {
+                if (uploadRes.status === 413) {
+                  setError(language === "bg" 
+                    ? "Снимката е твърде голяма! Моля, изберете снимка под 20MB." 
+                    : language === "en" 
+                    ? "Image is too large! Please select an image under 20MB."
+                    : "Изображение слишком большое! Пожалуйста, выберите изображение менее 20 МБ.");
+                } else {
+                  setError(`${t.errorImageNotUploaded}: ${errorMessage}`);
+                }
+              } else {
+                // Ако сме в VIP payment модал, покажи грешката там
+                console.error('Image upload failed during VIP payment:', errorMessage);
+              }
             }
-            
+          } catch (uploadErr: any) {
+            console.error('Upload exception:', uploadErr);
             // Покажи грешката само ако не сме в VIP payment модал
             if (!showVipPayment) {
-              if (uploadRes.status === 413) {
-                setError(language === "bg" 
-                  ? "Снимката е твърде голяма! Моля, изберете снимка под 20MB." 
-                  : language === "en" 
-                  ? "Image is too large! Please select an image under 20MB."
-                  : "Изображение слишком большое! Пожалуйста, выберите изображение менее 20 МБ.");
-              } else {
-                setError(`${t.errorImageNotUploaded}: ${errorMessage}`);
-              }
-            } else {
-              // Ако сме в VIP payment модал, покажи грешката там
-              console.error('Image upload failed during VIP payment:', errorMessage);
+              setError(`${t.errorImageNotUploaded} ${uploadErr.message}`);
             }
           }
-        } catch (uploadErr: any) {
-          console.error('Upload exception:', uploadErr);
-          // Покажи грешката само ако не сме в VIP payment модал
-          if (!showVipPayment) {
-            setError(`${t.errorImageNotUploaded} ${uploadErr.message}`);
-          }
-        }
+        })();
       }
     } catch (err) {
       setError(String(err));
