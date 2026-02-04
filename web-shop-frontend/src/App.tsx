@@ -1421,8 +1421,8 @@ function App() {
           itemId={pendingVipItemId}
           amount={2.0}
           language={language}
-          onPaymentComplete={(cardNumber, cardHolder, expiryDate, cvv) => {
-            handleVipPayment(cardNumber, cardHolder, expiryDate, cvv);
+          onPaymentComplete={async (cardNumber, cardHolder, expiryDate, cvv) => {
+            await handleVipPayment(cardNumber, cardHolder, expiryDate, cvv);
           }}
           onCancel={handleCancelVipPayment}
           error={error}

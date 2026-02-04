@@ -5,7 +5,7 @@ type VipPaymentFormProps = {
   itemId: number;
   amount: number;
   language: Language;
-  onPaymentComplete: (cardNumber: string, cardHolder: string, expiryDate: string, cvv: string) => void;
+  onPaymentComplete: (cardNumber: string, cardHolder: string, expiryDate: string, cvv: string) => Promise<void>;
   onCancel: () => void;
   error: string | null;
 };
@@ -157,7 +157,7 @@ export function VipPaymentForm({
           {language === "bg" ? "Плащане за VIP статус" : language === "en" ? "VIP Status Payment" : "Оплата VIP статуса"}
         </h2>
         
-        {error && (
+        {(error || formError) && (
           <div className="error-message" style={{
             backgroundColor: "#fee2e2",
             color: "#991b1b",
@@ -165,7 +165,7 @@ export function VipPaymentForm({
             borderRadius: "8px",
             marginBottom: "16px",
           }}>
-            {error}
+            {error || formError}
           </div>
         )}
 
