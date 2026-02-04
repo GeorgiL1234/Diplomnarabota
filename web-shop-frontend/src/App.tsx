@@ -564,15 +564,39 @@ function App() {
           } else {
             const errorText = await uploadRes.text();
             console.error('Upload failed:', uploadRes.status, errorText);
-            if (uploadRes.status === 413) {
-              setError(`Снимката е твърде голяма! Моля, изберете снимка под 20MB. (HTTP 413: Payload Too Large)`);
+            
+            // Опитай се да парсне JSON грешката ако е възможно
+            let errorMessage = errorText;
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.error || errorJson.message || errorText;
+            } catch {
+              // Ако не е JSON, използвай текста както е
+              errorMessage = errorText;
+            }
+            
+            // Покажи грешката само ако не сме в VIP payment модал
+            if (!showVipPayment) {
+              if (uploadRes.status === 413) {
+                setError(language === "bg" 
+                  ? "Снимката е твърде голяма! Моля, изберете снимка под 20MB." 
+                  : language === "en" 
+                  ? "Image is too large! Please select an image under 20MB."
+                  : "Изображение слишком большое! Пожалуйста, выберите изображение менее 20 МБ.");
+              } else {
+                setError(`${t.errorImageNotUploaded}: ${errorMessage}`);
+              }
             } else {
-              setError(`${t.errorImageNotUploaded} ${uploadRes.status}: ${errorText}`);
+              // Ако сме в VIP payment модал, покажи грешката там
+              console.error('Image upload failed during VIP payment:', errorMessage);
             }
           }
         } catch (uploadErr: any) {
           console.error('Upload exception:', uploadErr);
-          setError(`${t.errorImageNotUploaded} ${uploadErr.message}`);
+          // Покажи грешката само ако не сме в VIP payment модал
+          if (!showVipPayment) {
+            setError(`${t.errorImageNotUploaded} ${uploadErr.message}`);
+          }
         }
       }
     } catch (err) {

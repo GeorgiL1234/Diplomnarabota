@@ -78,9 +78,9 @@ public class FileUploadController {
             System.out.println("File content type: " + file.getContentType());
             System.out.println("File isEmpty: " + file.isEmpty());
 
-            if (file == null || file.isEmpty()) {
-                System.out.println("Uploaded file is empty or null!");
-                return ResponseEntity.badRequest().body("Empty file upload");
+            if (file.isEmpty()) {
+                System.out.println("Uploaded file is empty!");
+                return ResponseEntity.badRequest().body("{\"error\":\"File is empty\",\"path\":\"/upload/" + itemId + "\"}");
             }
 
             Item item = itemRepository.findById(itemId)
@@ -159,14 +159,16 @@ public class FileUploadController {
                 if (e.getCause() != null) {
                     errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
                 }
-                return ResponseEntity.status(500).body(errorMsg);
+                // Връщаме JSON форматирана грешка
+                return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
             }
 
             return ResponseEntity.ok("UPLOAD_OK");
         } catch (RuntimeException e) {
             System.out.println("RUNTIME ERROR in upload: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
+            String errorMsg = "Upload failed: " + e.getMessage();
+            return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
         } catch (Exception e) {
             System.out.println("ERROR in upload: " + e.getMessage());
             e.printStackTrace();
@@ -174,7 +176,8 @@ public class FileUploadController {
             if (e.getCause() != null) {
                 errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
             }
-            return ResponseEntity.status(500).body("Upload failed: " + errorMsg + " [" + e.getClass().getSimpleName() + "]");
+            errorMsg = "Upload failed: " + errorMsg + " [" + e.getClass().getSimpleName() + "]";
+            return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
         }
     }
 
