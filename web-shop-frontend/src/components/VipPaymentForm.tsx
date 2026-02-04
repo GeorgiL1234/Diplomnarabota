@@ -25,6 +25,7 @@ export function VipPaymentForm({
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Валидиране на картата - трябва да е валидна карта
   const validateCard = (cardNum: string): boolean => {
@@ -58,39 +59,61 @@ export function VipPaymentForm({
 
   const handlePayment = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Ако вече се обработва, не прави нищо
+    if (isProcessing) {
+      return;
+    }
+    
     setFormError(null);
+    setIsProcessing(true);
     
-    // Валидация на картата
-    const cleanedCardNumber = cardNumber.replace(/\s+/g, "").replace(/-/g, "");
-    
-    if (!cleanedCardNumber || cleanedCardNumber.length < 13) {
-      setFormError(language === "bg" ? "Моля, въведете валиден номер на карта" : language === "en" ? "Please enter a valid card number" : "Пожалуйста, введите действительный номер карты");
-      return;
+    try {
+      // Валидация на картата
+      const cleanedCardNumber = cardNumber.replace(/\s+/g, "").replace(/-/g, "");
+      
+      if (!cleanedCardNumber || cleanedCardNumber.length < 13) {
+        setFormError(language === "bg" ? "Моля, въведете валиден номер на карта" : language === "en" ? "Please enter a valid card number" : "Пожалуйста, введите действительный номер карты");
+        setIsProcessing(false);
+        return;
+      }
+      
+      if (!validateCard(cleanedCardNumber)) {
+        setFormError(language === "bg" ? "Невалиден номер на карта. Моля, проверете номера." : language === "en" ? "Invalid card number. Please check the number." : "Недействительный номер карты. Пожалуйста, проверьте номер.");
+        setIsProcessing(false);
+        return;
+      }
+      
+      if (!cardHolder.trim()) {
+        setFormError(language === "bg" ? "Моля, въведете името на картодържателя" : language === "en" ? "Please enter cardholder name" : "Пожалуйста, введите имя держателя карты");
+        setIsProcessing(false);
+        return;
+      }
+      
+      if (!expiryDate.trim() || !/^\d{2}\/\d{2}$/.test(expiryDate)) {
+        setFormError(language === "bg" ? "Моля, въведете валидна дата на изтичане (MM/YY)" : language === "en" ? "Please enter a valid expiry date (MM/YY)" : "Пожалуйста, введите действительную дату истечения (ММ/ГГ)");
+        setIsProcessing(false);
+        return;
+      }
+      
+      if (!cvv.trim() || cvv.length < 3 || cvv.length > 4) {
+        setFormError(language === "bg" ? "Моля, въведете валиден CVV код" : language === "en" ? "Please enter a valid CVV code" : "Пожалуйста, введите действительный CVV код");
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Симулация на плащане - в реална система тук ще има интеграция с платежен процесор (Stripe, PayPal и др.)
+      // За сега просто приемаме плащането като успешно ако картата е валидна
+      await onPaymentComplete(cleanedCardNumber, cardHolder.trim(), expiryDate.trim(), cvv.trim());
+    } catch (err) {
+      console.error("Payment error:", err);
+      setFormError(language === "bg" 
+        ? `Грешка при обработка на плащането: ${err}` 
+        : language === "en" 
+        ? `Error processing payment: ${err}`
+        : `Ошибка обработки платежа: ${err}`);
+      setIsProcessing(false);
     }
-    
-    if (!validateCard(cleanedCardNumber)) {
-      setFormError(language === "bg" ? "Невалиден номер на карта. Моля, проверете номера." : language === "en" ? "Invalid card number. Please check the number." : "Недействительный номер карты. Пожалуйста, проверьте номер.");
-      return;
-    }
-    
-    if (!cardHolder.trim()) {
-      setFormError(language === "bg" ? "Моля, въведете името на картодържателя" : language === "en" ? "Please enter cardholder name" : "Пожалуйста, введите имя держателя карты");
-      return;
-    }
-    
-    if (!expiryDate.trim() || !/^\d{2}\/\d{2}$/.test(expiryDate)) {
-      setFormError(language === "bg" ? "Моля, въведете валидна дата на изтичане (MM/YY)" : language === "en" ? "Please enter a valid expiry date (MM/YY)" : "Пожалуйста, введите действительную дату истечения (ММ/ГГ)");
-      return;
-    }
-    
-    if (!cvv.trim() || cvv.length < 3 || cvv.length > 4) {
-      setFormError(language === "bg" ? "Моля, въведете валиден CVV код" : language === "en" ? "Please enter a valid CVV code" : "Пожалуйста, введите действительный CVV код");
-      return;
-    }
-    
-    // Симулация на плащане - в реална система тук ще има интеграция с платежен процесор (Stripe, PayPal и др.)
-    // За сега просто приемаме плащането като успешно ако картата е валидна
-    onPaymentComplete(cleanedCardNumber, cardHolder.trim(), expiryDate.trim(), cvv.trim());
   };
   
   // Форматиране на номера на картата (добавяне на интервали всеки 4 цифри)
@@ -312,19 +335,23 @@ export function VipPaymentForm({
             </button>
             <button
               type="submit"
+              disabled={isProcessing}
               style={{
                 flex: 1,
                 padding: "12px 24px",
                 borderRadius: "8px",
                 border: "none",
-                backgroundColor: "#2563eb",
+                backgroundColor: isProcessing ? "#9ca3af" : "#2563eb",
                 color: "white",
                 fontSize: "16px",
                 fontWeight: "500",
-                cursor: "pointer",
+                cursor: isProcessing ? "not-allowed" : "pointer",
+                opacity: isProcessing ? 0.7 : 1,
               }}
             >
-              {language === "bg" ? "Готово" : language === "en" ? "Complete Payment" : "Готово"}
+              {isProcessing 
+                ? (language === "bg" ? "Обработва се..." : language === "en" ? "Processing..." : "Обработка...")
+                : (language === "bg" ? "Готово" : language === "en" ? "Complete Payment" : "Готово")}
             </button>
           </div>
         </form>

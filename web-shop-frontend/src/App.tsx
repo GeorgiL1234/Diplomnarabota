@@ -330,7 +330,7 @@ function App() {
   // Обработка на VIP плащане
   const handleVipPayment = async (cardNumber: string, cardHolder: string, expiryDate: string, _cvv: string) => {
     if (!pendingVipItemId || !loggedInEmail) {
-      setError("Missing payment information");
+      setError(language === "bg" ? "Липсва информация за плащане" : language === "en" ? "Missing payment information" : "Отсутствует информация об оплате");
       return;
     }
 
@@ -343,6 +343,8 @@ function App() {
     try {
       setError(null);
       setMessage(null);
+      
+      console.log("Starting VIP payment process...");
 
       // Стъпка 1: Създай плащането с данни за картата
       const createPaymentRes = await fetch(`${API_BASE}/vip-payment/create`, {
@@ -396,6 +398,8 @@ function App() {
         throw new Error(errorText || "Failed to activate VIP");
       }
 
+      console.log("VIP payment completed successfully");
+      
       // Успешно плащане и активиране на VIP
       setMessage(language === "bg" 
         ? "VIP статусът е активиран успешно! Плащането от 2€ е прието." 
@@ -403,24 +407,30 @@ function App() {
         ? "VIP status activated successfully! Payment of €2 has been accepted."
         : "VIP статус успешно активирован! Платеж 2€ принят.");
       
-      // Затвори VIP payment модала
+      // Затвори VIP payment модала ПРЕДИ да зареждаме items
       setShowVipPayment(false);
       setPendingVipItemId(null);
       setError(null); // Изчисти грешките
       
       // Презареди items и selectedItem
-      await loadItems();
-      if (selectedItem && selectedItem.id === pendingVipItemId) {
-        try {
-          const updatedItem = await fetch(`${API_BASE}/items/${pendingVipItemId}`).then(r => r.json());
-          setSelectedItem(updatedItem);
-        } catch (err) {
-          console.error("Failed to reload item:", err);
+      try {
+        await loadItems();
+        if (selectedItem && selectedItem.id === pendingVipItemId) {
+          try {
+            const updatedItem = await fetch(`${API_BASE}/items/${pendingVipItemId}`).then(r => r.json());
+            setSelectedItem(updatedItem);
+          } catch (err) {
+            console.error("Failed to reload item:", err);
+          }
         }
+      } catch (err) {
+        console.error("Failed to reload items:", err);
       }
     } catch (err) {
       console.error("VIP payment error:", err);
-      setError(String(err));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+      // НЕ затваряме модала при грешка, за да може потребителят да види грешката
     }
   };
 
