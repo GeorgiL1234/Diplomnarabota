@@ -195,18 +195,6 @@ export function VipPaymentForm({
               : "⚠️ Для VIP статуса оплата должна производиться картой. Пожалуйста, введите данные карты."}
           </div>
 
-          {formError && (
-            <div className="error-message" style={{
-              backgroundColor: "#fee2e2",
-              color: "#991b1b",
-              padding: "12px",
-              borderRadius: "8px",
-              marginBottom: "16px",
-            }}>
-              {formError}
-            </div>
-          )}
-
           <div className="form-group" style={{ marginBottom: "16px" }}>
             <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
               {language === "bg" ? "Номер на карта:" : language === "en" ? "Card Number:" : "Номер карты:"} *
