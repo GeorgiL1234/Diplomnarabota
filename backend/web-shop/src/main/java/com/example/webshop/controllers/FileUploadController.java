@@ -46,8 +46,8 @@ public class FileUploadController {
     @Transactional
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("ownerEmail") String ownerEmail) {
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "ownerEmail", required = false) String ownerEmail) {
 
         System.out.println("========================================");
         System.out.println(">>> UPLOAD ENDPOINT CALLED <<<");
@@ -57,9 +57,20 @@ public class FileUploadController {
         System.out.println("File object: " + (file != null ? "NOT NULL" : "NULL"));
         
         try {
+            // Валидация на входните данни
             if (file == null) {
                 System.out.println("ERROR: File is null!");
-                return ResponseEntity.badRequest().body("File is null");
+                return ResponseEntity.badRequest().body("{\"error\":\"File is required\"}");
+            }
+            
+            if (ownerEmail == null || ownerEmail.trim().isEmpty()) {
+                System.out.println("ERROR: Owner email is null or empty!");
+                return ResponseEntity.badRequest().body("{\"error\":\"Owner email is required\"}");
+            }
+            
+            if (itemId == null) {
+                System.out.println("ERROR: Item ID is null!");
+                return ResponseEntity.badRequest().body("{\"error\":\"Item ID is required\"}");
             }
             
             System.out.println("File name: " + file.getOriginalFilename());

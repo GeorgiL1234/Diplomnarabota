@@ -325,9 +325,15 @@ function App() {
   };
 
   // Обработка на VIP плащане
-  const handleVipPayment = async () => {
+  const handleVipPayment = async (cardNumber: string, cardHolder: string, expiryDate: string, _cvv: string) => {
     if (!pendingVipItemId || !loggedInEmail) {
       setError("Missing payment information");
+      return;
+    }
+
+    // Валидация на картата
+    if (!cardNumber || cardNumber.length < 13) {
+      setError(language === "bg" ? "Моля, въведете валиден номер на карта" : language === "en" ? "Please enter a valid card number" : "Пожалуйста, введите действительный номер карты");
       return;
     }
 
@@ -335,7 +341,7 @@ function App() {
       setError(null);
       setMessage(null);
 
-      // Стъпка 1: Създай плащането
+      // Стъпка 1: Създай плащането с данни за картата
       const createPaymentRes = await fetch(`${API_BASE}/vip-payment/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
@@ -343,6 +349,9 @@ function App() {
           itemId: pendingVipItemId,
           ownerEmail: loggedInEmail,
           paymentMethod: "card",
+          cardNumber: cardNumber.substring(cardNumber.length - 4), // Изпращаме само последните 4 цифри за сигурност
+          cardHolder: cardHolder,
+          expiryDate: expiryDate,
         }),
       });
 
@@ -1338,7 +1347,9 @@ function App() {
           itemId={pendingVipItemId}
           amount={2.0}
           language={language}
-          onPaymentComplete={handleVipPayment}
+          onPaymentComplete={(cardNumber, cardHolder, expiryDate, cvv) => {
+            handleVipPayment(cardNumber, cardHolder, expiryDate, cvv);
+          }}
           onCancel={handleCancelVipPayment}
           error={error}
         />

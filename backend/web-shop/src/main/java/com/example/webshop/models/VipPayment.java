@@ -32,6 +32,15 @@ public class VipPayment {
     @Column(nullable = true)
     private String paymentMethod; // card, bank_transfer, etc.
 
+    @Column(nullable = true)
+    private String cardLastFour; // Последните 4 цифри на картата за сигурност
+
+    @Column(nullable = true)
+    private String cardHolder; // Име на картодържателя
+
+    @Column(nullable = true)
+    private String expiryDate; // Дата на изтичане (MM/YY)
+
     public VipPayment() {
     }
 
@@ -106,5 +115,29 @@ public class VipPayment {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public String getCardLastFour() {
+        return cardLastFour;
+    }
+
+    public void setCardLastFour(String cardLastFour) {
+        this.cardLastFour = cardLastFour;
+    }
+
+    public String getCardHolder() {
+        return cardHolder;
+    }
+
+    public void setCardHolder(String cardHolder) {
+        this.cardHolder = cardHolder;
+    }
+
+    public String getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(String expiryDate) {
+        this.expiryDate = expiryDate;
     }
 }

@@ -29,7 +29,8 @@ public class VipPaymentService {
      * Създава ново плащане за VIP статус
      */
     @Transactional
-    public VipPayment createPayment(Long itemId, String ownerEmail, String paymentMethod) {
+    public VipPayment createPayment(Long itemId, String ownerEmail, String paymentMethod, 
+                                   String cardLastFour, String cardHolder, String expiryDate) {
         // Проверка дали обявата съществува
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found: " + itemId));
@@ -50,11 +51,20 @@ public class VipPaymentService {
                     throw new RuntimeException("A payment is already pending for this listing");
                 });
 
+        // За VIP плащането ТРЯБВА да е с карта
+        if (!"card".equalsIgnoreCase(paymentMethod)) {
+            throw new RuntimeException("VIP status requires payment with a card");
+        }
+
         VipPayment payment = new VipPayment(itemId, ownerEmail, VIP_PRICE);
         payment.setPaymentMethod(paymentMethod);
+        payment.setCardLastFour(cardLastFour);
+        payment.setCardHolder(cardHolder);
+        payment.setExpiryDate(expiryDate);
         payment.setStatus("PENDING");
 
-        logger.info("Creating VIP payment for item {} by user {}", itemId, ownerEmail);
+        logger.info("Creating VIP payment for item {} by user {} with card ending in {}", 
+                itemId, ownerEmail, cardLastFour);
         return vipPaymentRepository.save(payment);
     }
 

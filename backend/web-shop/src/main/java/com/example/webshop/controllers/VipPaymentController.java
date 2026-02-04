@@ -33,9 +33,38 @@ public class VipPaymentController {
             String ownerEmail = (String) request.get("ownerEmail");
             String paymentMethod = (String) request.getOrDefault("paymentMethod", "card");
 
-            logger.info("Creating VIP payment for item {} by user {}", itemId, ownerEmail);
+            // За VIP плащането ТРЯБВА да е с карта
+            if (!"card".equalsIgnoreCase(paymentMethod)) {
+                logger.error("VIP payment attempted with non-card method: {}", paymentMethod);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("VIP status requires payment with a card. Please use card payment.");
+            }
 
-            VipPayment payment = vipPaymentService.createPayment(itemId, ownerEmail, paymentMethod);
+            // Валидация на данните за картата
+            String cardNumber = (String) request.get("cardNumber");
+            String cardHolder = (String) request.get("cardHolder");
+            String expiryDate = (String) request.get("expiryDate");
+
+            if (cardNumber == null || cardNumber.length() < 4) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Card number is required and must have at least 4 digits");
+            }
+
+            if (cardHolder == null || cardHolder.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Cardholder name is required");
+            }
+
+            if (expiryDate == null || expiryDate.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Expiry date is required");
+            }
+
+            logger.info("Creating VIP payment for item {} by user {} with card ending in {}", 
+                    itemId, ownerEmail, cardNumber);
+
+            VipPayment payment = vipPaymentService.createPayment(itemId, ownerEmail, paymentMethod, 
+                    cardNumber, cardHolder, expiryDate);
 
             return ResponseEntity.ok(Map.of(
                     "paymentId", payment.getId(),
