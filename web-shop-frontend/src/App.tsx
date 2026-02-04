@@ -362,10 +362,19 @@ function App() {
 
       if (!createPaymentRes.ok) {
         const errorText = await createPaymentRes.text();
-        throw new Error(errorText || "Failed to create payment");
+        console.error("Failed to create payment:", createPaymentRes.status, errorText);
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorText;
+        } catch {
+          // Not JSON, use as is
+        }
+        throw new Error(errorMessage || "Failed to create payment");
       }
 
       const paymentData = await createPaymentRes.json();
+      console.log("Payment created:", paymentData);
       const paymentId = paymentData.paymentId;
 
       // Стъпка 2: Завърши плащането (симулация - в реална система тук ще има интеграция с платежен процесор)
@@ -380,8 +389,18 @@ function App() {
 
       if (!completePaymentRes.ok) {
         const errorText = await completePaymentRes.text();
-        throw new Error(errorText || "Failed to complete payment");
+        console.error("Failed to complete payment:", completePaymentRes.status, errorText);
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorText;
+        } catch {
+          // Not JSON, use as is
+        }
+        throw new Error(errorMessage || "Failed to complete payment");
       }
+      
+      console.log("Payment completed successfully");
 
       // Стъпка 3: Активирай VIP статуса
       const activateVipRes = await fetch(`${API_BASE}/vip/activate`, {
@@ -395,8 +414,18 @@ function App() {
 
       if (!activateVipRes.ok) {
         const errorText = await activateVipRes.text();
-        throw new Error(errorText || "Failed to activate VIP");
+        console.error("Failed to activate VIP:", activateVipRes.status, errorText);
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorText;
+        } catch {
+          // Not JSON, use as is
+        }
+        throw new Error(errorMessage || "Failed to activate VIP");
       }
+      
+      console.log("VIP activated successfully");
 
       console.log("VIP payment completed successfully");
       
