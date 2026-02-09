@@ -42,12 +42,12 @@ public class FileUploadController {
         this.itemRepository = itemRepository;
     }
 
-    @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
-            @RequestParam(value = "file", required = false) MultipartFile file,
-            @RequestParam(value = "ownerEmail", required = false) String ownerEmail) {
+            @RequestParam(value = "file") MultipartFile file,
+            @RequestParam(value = "ownerEmail") String ownerEmail) {
 
         System.out.println("========================================");
         System.out.println(">>> UPLOAD ENDPOINT CALLED <<<");
@@ -58,19 +58,25 @@ public class FileUploadController {
         
         try {
             // Валидация на входните данни
-            if (file == null) {
-                System.out.println("ERROR: File is null!");
-                return ResponseEntity.badRequest().body("{\"error\":\"File is required\"}");
+            if (file == null || file.isEmpty()) {
+                System.out.println("ERROR: File is null or empty!");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"File is required\",\"status\":\"error\"}");
             }
             
             if (ownerEmail == null || ownerEmail.trim().isEmpty()) {
                 System.out.println("ERROR: Owner email is null or empty!");
-                return ResponseEntity.badRequest().body("{\"error\":\"Owner email is required\"}");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Owner email is required\",\"status\":\"error\"}");
             }
             
             if (itemId == null) {
                 System.out.println("ERROR: Item ID is null!");
-                return ResponseEntity.badRequest().body("{\"error\":\"Item ID is required\"}");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Item ID is required\",\"status\":\"error\"}");
             }
             
             System.out.println("File name: " + file.getOriginalFilename());
@@ -177,7 +183,9 @@ public class FileUploadController {
                 errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
             }
             errorMsg = "Upload failed: " + errorMsg + " [" + e.getClass().getSimpleName() + "]";
-            return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"error\":\"" + errorMsg.replace("\"", "\\\"").replace("\n", " ") + "\",\"status\":\"error\",\"path\":\"/upload/" + itemId + "\"}");
         }
     }
 

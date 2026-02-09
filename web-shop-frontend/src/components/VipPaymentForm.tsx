@@ -154,10 +154,13 @@ export function VipPaymentForm({
       bottom: 0,
       backgroundColor: "rgba(0, 0, 0, 0.5)",
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       zIndex: 1000,
       pointerEvents: "auto",
+      overflowY: "auto",
+      padding: "20px",
+      WebkitOverflowScrolling: "touch",
     }} onClick={(e) => {
       // Затвори модала при клик извън формата (само ако не се обработва)
       if (!isProcessing && e.target === e.currentTarget) {
@@ -170,8 +173,13 @@ export function VipPaymentForm({
         borderRadius: "12px",
         maxWidth: "500px",
         width: "90%",
+        maxHeight: "calc(100vh - 40px)",
+        overflowY: "auto",
+        overflowX: "hidden",
         boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
         pointerEvents: "auto",
+        margin: "20px auto",
+        WebkitOverflowScrolling: "touch",
       }} onClick={(e) => {
         // Спре разпространението на клика, за да не се затваря формата при клик върху нея
         e.stopPropagation();

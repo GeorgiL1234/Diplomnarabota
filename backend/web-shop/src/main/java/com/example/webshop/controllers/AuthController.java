@@ -40,8 +40,10 @@ public class AuthController {
             }
             
             logger.info("Register attempt for email: {}", user.getEmail());
+            long startTime = System.currentTimeMillis();
             userService.register(user.getEmail(), user.getPassword(), user.getFullName());
-            logger.info("Registration successful for email: {}", user.getEmail());
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Registration successful for email: {} (took {}ms)", user.getEmail(), duration);
             return ResponseEntity.ok("REGISTER_OK");
         } catch (RuntimeException e) {
             logger.error("Registration failed for email: {}", user != null ? user.getEmail() : "unknown", e);

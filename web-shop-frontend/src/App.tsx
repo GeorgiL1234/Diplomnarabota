@@ -27,6 +27,7 @@ function App() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
   
   // Запазваме email в localStorage за персистентност
   const [loggedInEmail, setLoggedInEmail] = useState<string | null>(() => {
@@ -179,6 +180,12 @@ function App() {
   // auth – register
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Ако вече се обработва регистрация, не прави нищо
+    if (isRegistering) {
+      return;
+    }
+    
     setError(null);
     setMessage(null);
     
@@ -194,6 +201,8 @@ function App() {
       setError(passwordError);
       return;
     }
+    
+    setIsRegistering(true);
     
     try {
       console.log("Register attempt:", { email: registerEmail, fullName });
@@ -246,6 +255,8 @@ function App() {
     } catch (err) {
       console.error("Register error:", err);
       setError(String(err));
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -384,6 +395,7 @@ function App() {
         body: JSON.stringify({
           paymentId: paymentId,
           ownerEmail: loggedInEmail,
+          paymentMethodId: null, // В реална система тук ще се изпрати Stripe Payment Method ID
         }),
       });
 
@@ -599,6 +611,7 @@ function App() {
             const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
               method: "POST",
               body: formData,
+              // НЕ добавяме Content-Type header - браузърът трябва да го зададе автоматично с boundary
             });
             
             console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
@@ -606,19 +619,36 @@ function App() {
             if (uploadRes.ok) {
               const responseText = await uploadRes.text();
               console.log('Upload response:', responseText);
-              // Покажи съобщение само ако не сме в VIP payment модал
-              if (!showVipPayment) {
-                setMessage(t.successListingImageUploaded);
+              
+              // Проверка дали response-ът е успешен (може да е JSON или текст)
+              let isSuccess = false;
+              try {
+                const responseJson = JSON.parse(responseText);
+                isSuccess = responseJson.status === "success" || responseJson.message?.includes("success");
+              } catch {
+                // Ако не е JSON, провери дали съдържа "success" или "UPLOAD_OK"
+                isSuccess = responseText.includes("success") || responseText.includes("UPLOAD_OK");
               }
-              // Презареди items и обнови selectedItem, за да видим новата снимка
-              setTimeout(() => {
-                loadItems();
-                // Презареди selectedItem с актуализираните данни
-                fetch(`${API_BASE}/items/${createdItem.id}`)
-                  .then((res) => res.json())
-                  .then((updated) => setSelectedItem(updated))
-                  .catch(() => {});
-              }, 500);
+              
+              if (isSuccess) {
+                // Покажи съобщение само ако не сме в VIP payment модал
+                if (!showVipPayment) {
+                  setMessage(t.successListingImageUploaded);
+                }
+                // Презареди items и обнови selectedItem, за да видим новата снимка
+                setTimeout(() => {
+                  loadItems();
+                  // Презареди selectedItem с актуализираните данни
+                  if (createdItem.id) {
+                    fetch(`${API_BASE}/items/${createdItem.id}`)
+                      .then((res) => res.json())
+                      .then((updated) => setSelectedItem(updated))
+                      .catch((err) => console.error("Failed to reload item:", err));
+                  }
+                }, 500);
+              } else {
+                throw new Error(responseText || "Unknown upload error");
+              }
             } else {
               const errorText = await uploadRes.text();
               console.error('Upload failed:', uploadRes.status, errorText);
@@ -648,6 +678,7 @@ function App() {
                 // Ако сме в VIP payment модал, покажи грешката там
                 console.error('Image upload failed during VIP payment:', errorMessage);
               }
+              throw new Error(errorMessage);
             }
           } catch (uploadErr: any) {
             console.error('Upload exception:', uploadErr);
@@ -1219,6 +1250,7 @@ function App() {
       {/* REGISTER СТРАНИЦА */}
       {view === "register" && !loggedInEmail && (
         <RegisterPage
+          isRegistering={isRegistering}
           fullName={fullName}
           setFullName={setFullName}
           email={registerEmail}

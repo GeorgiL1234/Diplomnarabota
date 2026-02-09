@@ -12,6 +12,7 @@ type RegisterPageProps = {
   handleRegister: (e: FormEvent) => void;
   onSwitchToLogin: () => void;
   error: string | null;
+  isRegistering: boolean;
 };
 
 export function RegisterPage({
@@ -25,6 +26,7 @@ export function RegisterPage({
   handleRegister,
   onSwitchToLogin,
   error,
+  isRegistering,
 }: RegisterPageProps) {
   const t = translations[language] || translations["bg"];
   
@@ -66,8 +68,10 @@ export function RegisterPage({
             {t.passwordHint}
           </p>
         </div>
-        <button type="submit" className="btn-primary">
-          {t.register}
+        <button type="submit" className="btn-primary" disabled={isRegistering}>
+          {isRegistering 
+            ? (language === "bg" ? "Регистрира се..." : language === "en" ? "Registering..." : "Регистрация...")
+            : t.register}
         </button>
       </form>
       <div style={{ marginTop: "20px", textAlign: "center" }}>

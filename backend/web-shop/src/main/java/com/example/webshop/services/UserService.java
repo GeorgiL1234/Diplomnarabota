@@ -19,7 +19,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    @Transactional
+    @Transactional(readOnly = false, timeout = 5)
     public User register(String email, String password, String fullName) {
         // Оптимизирана проверка - използваме existsByEmail за по-бърза проверка
         if (userRepository.existsByEmail(email)) {
@@ -30,8 +30,8 @@ public class UserService {
         logger.debug("Encoded password for email {}: {}", email, encodedPassword);
 
         User newUser = new User(email, encodedPassword, fullName);
-        // Използваме save() вместо saveAndFlush() за по-добра производителност
-        // Spring ще направи flush автоматично при commit на транзакцията
+        // Използваме save() за по-бързо записване - Spring ще направи flush автоматично при commit
+        // Това е по-бързо от saveAndFlush() защото не прави синхронно flush
         User saved = userRepository.save(newUser);
         logger.debug("User saved with ID: {}", saved.getId());
         return saved;
