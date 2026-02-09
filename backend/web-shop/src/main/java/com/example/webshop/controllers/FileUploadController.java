@@ -84,10 +84,7 @@ public class FileUploadController {
             System.out.println("File content type: " + file.getContentType());
             System.out.println("File isEmpty: " + file.isEmpty());
 
-            if (file.isEmpty()) {
-                System.out.println("Uploaded file is empty!");
-                return ResponseEntity.badRequest().body("{\"error\":\"File is empty\",\"path\":\"/upload/" + itemId + "\"}");
-            }
+            // Това вече е проверено по-горе, но оставяме за сигурност
 
             Item item = itemRepository.findById(itemId)
                     .orElseThrow(() -> new RuntimeException("Item not found: " + itemId));
@@ -95,7 +92,9 @@ public class FileUploadController {
             // Проверка дали потребителят е собственик на обявата
             if (item.getOwnerEmail() == null || !item.getOwnerEmail().equals(ownerEmail)) {
                 System.out.println("Owner mismatch! Item owner: " + item.getOwnerEmail() + ", Request owner: " + ownerEmail);
-                return ResponseEntity.status(403).body("You can only upload images to your own listings");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"You can only upload images to your own listings\",\"status\":\"error\"}");
             }
 
             // На Render.com файловата система е ефемерна, затова директно запазваме като base64
@@ -108,13 +107,17 @@ public class FileUploadController {
             } catch (IOException e) {
                 System.out.println("ERROR: Failed to read file bytes: " + e.getMessage());
                 e.printStackTrace();
-                return ResponseEntity.status(500).body("Failed to read file: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Failed to read file: " + e.getMessage().replace("\"", "\\\"").replace("\n", " ") + "\",\"status\":\"error\"}");
             }
             
             // Проверка за размера - H2 TEXT колоната може да съхранява до 2GB, но нека ограничим до 10MB за сигурност
             if (bytes.length > 10 * 1024 * 1024) { // Ако е над 10MB
                 System.out.println("ERROR: Image is too large (" + bytes.length + " bytes, max 10MB)");
-                return ResponseEntity.status(413).body("Image is too large. Maximum size is 10MB.");
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Image is too large. Maximum size is 10MB.\",\"status\":\"error\"}");
             }
             
             String base64Image;
@@ -124,7 +127,9 @@ public class FileUploadController {
             } catch (Exception e) {
                 System.out.println("ERROR: Failed to encode base64: " + e.getMessage());
                 e.printStackTrace();
-                return ResponseEntity.status(500).body("Failed to encode image: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Failed to encode image: " + e.getMessage().replace("\"", "\\\"").replace("\n", " ") + "\",\"status\":\"error\"}");
             }
             
             String contentType = file.getContentType();
@@ -139,7 +144,9 @@ public class FileUploadController {
             // Проверка дали dataUri не е твърде голям (H2 TEXT поддържа до 2GB, но нека проверим)
             if (dataUri.length() > 50 * 1024 * 1024) { // 50MB като string
                 System.out.println("ERROR: Data URI is too large (" + dataUri.length() + " characters)");
-                return ResponseEntity.status(413).body("Image data is too large after encoding.");
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Image data is too large after encoding.\",\"status\":\"error\"}");
             }
             
             try {
@@ -166,15 +173,21 @@ public class FileUploadController {
                     errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
                 }
                 // Връщаме JSON форматирана грешка
-                return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"" + errorMsg.replace("\"", "\\\"").replace("\n", " ") + "\",\"status\":\"error\",\"path\":\"/upload/" + itemId + "\"}");
             }
 
-            return ResponseEntity.ok("{\"status\":\"success\",\"message\":\"Image uploaded successfully\"}");
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"status\":\"success\",\"message\":\"Image uploaded successfully\"}");
         } catch (RuntimeException e) {
             System.out.println("RUNTIME ERROR in upload: " + e.getMessage());
             e.printStackTrace();
-            String errorMsg = "Upload failed: " + e.getMessage();
-            return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
+            String errorMsg = e.getMessage() != null ? e.getMessage().replace("\"", "\\\"").replace("\n", " ") : "Upload failed";
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"error\":\"" + errorMsg + "\",\"status\":\"error\",\"path\":\"/upload/" + itemId + "\"}");
         } catch (Exception e) {
             System.out.println("ERROR in upload: " + e.getMessage());
             e.printStackTrace();
