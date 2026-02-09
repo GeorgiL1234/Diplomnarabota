@@ -92,10 +92,11 @@ public class VipPaymentController {
         try {
             Long paymentId = Long.valueOf(request.get("paymentId").toString());
             String ownerEmail = (String) request.get("ownerEmail");
+            String paymentMethodId = (String) request.get("paymentMethodId"); // Stripe Payment Method ID
 
             logger.info("Completing VIP payment {} by user {}", paymentId, ownerEmail);
 
-            VipPayment payment = vipPaymentService.completePayment(paymentId, ownerEmail);
+            VipPayment payment = vipPaymentService.completePayment(paymentId, ownerEmail, paymentMethodId);
 
             return ResponseEntity.ok(Map.of(
                     "paymentId", payment.getId(),

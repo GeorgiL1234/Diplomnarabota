@@ -4,8 +4,13 @@ import com.example.webshop.models.Item;
 import com.example.webshop.models.VipPayment;
 import com.example.webshop.repositories.ItemRepository;
 import com.example.webshop.repositories.VipPaymentRepository;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +24,9 @@ public class VipPaymentService {
 
     private final VipPaymentRepository vipPaymentRepository;
     private final ItemRepository itemRepository;
+    
+    @Value("${stripe.secret.key:}")
+    private String stripeSecretKey;
 
     public VipPaymentService(VipPaymentRepository vipPaymentRepository, ItemRepository itemRepository) {
         this.vipPaymentRepository = vipPaymentRepository;
@@ -70,9 +78,10 @@ public class VipPaymentService {
 
     /**
      * Завършва плащането и активира VIP статуса
+     * Използва Stripe за обработка на плащането
      */
     @Transactional
-    public VipPayment completePayment(Long paymentId, String ownerEmail) {
+    public VipPayment completePayment(Long paymentId, String ownerEmail, String paymentMethodId) {
         VipPayment payment = vipPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
 
@@ -84,6 +93,38 @@ public class VipPaymentService {
         // Проверка дали плащането вече е завършено
         if ("COMPLETED".equals(payment.getStatus())) {
             throw new RuntimeException("Payment is already completed");
+        }
+
+        // Обработка на плащането чрез Stripe
+        if (stripeSecretKey != null && !stripeSecretKey.isEmpty() && paymentMethodId != null && !paymentMethodId.isEmpty()) {
+            try {
+                Stripe.apiKey = stripeSecretKey;
+                
+                // Създаване на Payment Intent
+                PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
+                        .setAmount((long)(VIP_PRICE * 100)) // Stripe използва центове
+                        .setCurrency("eur")
+                        .setPaymentMethod(paymentMethodId)
+                        .setConfirm(true)
+                        .setReturnUrl("https://webshop-app-2026.vercel.app");
+                
+                PaymentIntent paymentIntent = PaymentIntent.create(paramsBuilder.build());
+                
+                if (!"succeeded".equals(paymentIntent.getStatus())) {
+                    throw new RuntimeException("Payment failed: " + paymentIntent.getStatus());
+                }
+                
+                logger.info("Stripe payment successful. PaymentIntent ID: {}", paymentIntent.getId());
+            } catch (StripeException e) {
+                logger.error("Stripe payment error", e);
+                throw new RuntimeException("Payment processing failed: " + e.getMessage());
+            }
+        } else {
+            if (stripeSecretKey == null || stripeSecretKey.isEmpty()) {
+                logger.warn("Stripe secret key not configured. Skipping payment processing.");
+            } else {
+                logger.info("Payment method ID not provided. Processing payment without Stripe (demo mode).");
+            }
         }
 
         // Активирай VIP статуса на обявата
@@ -99,6 +140,14 @@ public class VipPaymentService {
 
         logger.info("Completing VIP payment {} for item {}", paymentId, payment.getItemId());
         return vipPaymentRepository.save(payment);
+    }
+    
+    /**
+     * Завършва плащането без Stripe (за обратна съвместимост)
+     */
+    @Transactional
+    public VipPayment completePayment(Long paymentId, String ownerEmail) {
+        return completePayment(paymentId, ownerEmail, null);
     }
 
     /**

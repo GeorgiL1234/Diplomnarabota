@@ -163,7 +163,7 @@ public class FileUploadController {
                 return ResponseEntity.status(500).body("{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\",\"path\":\"/upload/" + itemId + "\"}");
             }
 
-            return ResponseEntity.ok("UPLOAD_OK");
+            return ResponseEntity.ok("{\"status\":\"success\",\"message\":\"Image uploaded successfully\"}");
         } catch (RuntimeException e) {
             System.out.println("RUNTIME ERROR in upload: " + e.getMessage());
             e.printStackTrace();

@@ -374,7 +374,7 @@ export function VipPaymentForm({
             >
               {isProcessing 
                 ? (language === "bg" ? "Обработва се..." : language === "en" ? "Processing..." : "Обработка...")
-                : (language === "bg" ? "Готово" : language === "en" ? "Complete Payment" : "Готово")}
+                : (language === "bg" ? "Плати" : language === "en" ? "Pay" : "Оплатить")}
             </button>
           </div>
         </form>
