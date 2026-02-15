@@ -74,19 +74,19 @@ public class ItemController {
         return itemService.getAll();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:[0-9]+}")
     public Item getById(@PathVariable Long id) {
         return itemService.getById(id);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:[0-9]+}")
     public Item update(
             @PathVariable Long id,
             @RequestBody Item item) {
         return itemService.update(id, item);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]+}")
     public void delete(@PathVariable Long id) {
         itemService.delete(id);
     }
