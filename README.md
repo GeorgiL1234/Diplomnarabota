@@ -183,12 +183,9 @@ npm run dev
 
 **Решение (безплатно):** Настрой [UptimeRobot](https://uptimerobot.com) да прави HTTP заявка към:
 ```
-https://ВАШИЯТ-BACKEND-URL/health
+https://webshop-e6dx.onrender.com/actuator/health
 ```
-или
-```
-https://ВАШИЯТ-BACKEND-URL/auth/health
-```
+(Spring Boot Actuator – вграден endpoint)
 на всеки 10 минути. Така сървърът остава активен и регистрацията/входът са бързи.
 
 **Алтернатива:** При отваряне на страницата за вход/регистрация приложението автоматично изпраща заявка за „подгряване“ – изчакай 30–60 сек преди да натиснеш „Регистрирай“.

@@ -168,10 +168,12 @@ function App() {
     }
   }, [view]);
 
-  // Подгряване на backend - /health или /auth/health (Render.com cold start ~50 сек)
+  // Подгряване на backend - Actuator health е най-надежден (Render.com cold start ~50 сек)
   const warmBackend = () => {
-    fetch(`${API_BASE}/health`, { method: "GET" }).catch(() => 
-      fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {})
+    fetch(`${API_BASE}/actuator/health`, { method: "GET" }).catch(() => 
+      fetch(`${API_BASE}/health`, { method: "GET" }).catch(() => 
+        fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {})
+      )
     );
   };
   useEffect(() => { warmBackend(); }, []);
