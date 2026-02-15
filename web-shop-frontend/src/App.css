@@ -1648,43 +1648,46 @@ body {
   max-width: 640px;
 }
 
-/* Global Alert Boxes (Success, Error, Warning) */
+/* Global Alert Boxes - ЯСНО видими кутии (Success зелено, Error червено, Warning жълто) */
 .alert {
-  margin: 16px auto;
-  max-width: 600px;
-  padding: 16px 20px;
-  border-radius: var(--radius-lg);
-  font-size: 15px;
-  font-weight: 600;
-  box-shadow: var(--shadow-md);
-  border-left: 5px solid;
-  position: relative;
-  overflow: hidden;
+  margin: 16px auto !important;
+  max-width: 600px !important;
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  border-left: 6px solid !important;
+  position: relative !important;
+  overflow: hidden !important;
 }
 
 .alert strong {
   display: inline;
 }
 
+/* Success - ЗЕЛЕНА кутия */
 .alert-success {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
-  color: #047857;
-  border: 2px solid rgba(16, 185, 129, 0.4);
-  border-left: 5px solid var(--success);
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border: 2px solid #10b981 !important;
+  border-left: 6px solid #059669 !important;
 }
 
+/* Error - ЧЕРВЕНА кутия */
 .alert-error {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
-  color: #b91c1c;
-  border: 2px solid rgba(239, 68, 68, 0.4);
-  border-left: 5px solid var(--danger);
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 2px solid #ef4444 !important;
+  border-left: 6px solid #dc2626 !important;
 }
 
+/* Warning - ЖЪЛТА кутия */
 .alert-warning {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%);
-  color: #b45309;
-  border: 2px solid rgba(245, 158, 11, 0.4);
-  border-left: 5px solid var(--warning);
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 2px solid #f59e0b !important;
+  border-left: 6px solid #d97706 !important;
 }
 
 /* Upload Section */

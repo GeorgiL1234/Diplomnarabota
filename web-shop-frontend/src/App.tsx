@@ -1229,10 +1229,12 @@ function App() {
       const errorString = String(err).toLowerCase();
       const errorMsgLower = errorMessage ? errorMessage.toLowerCase() : '';
       
-      // Проверка за network errors - много по-агресивна
+      // Проверка за network errors - "Failed to fetch" = мрежова грешка, НЕ показваме
       const isNetworkError = 
         err.name === 'AbortError' || 
         err.name === 'TypeError' ||
+        err.message === 'Failed to fetch' ||
+        (typeof err.message === 'string' && err.message.includes('Failed to fetch')) ||
         errorString.includes('failed to fetch') ||
         errorString.includes('networkerror') ||
         errorString.includes('fetch') ||
@@ -1244,7 +1246,8 @@ function App() {
         errorMsgLower.includes('network') ||
         errorMsgLower.includes('cors') ||
         errorMsgLower.includes('connection') ||
-        errorMsgLower.includes('timeout');
+        errorMsgLower.includes('timeout') ||
+        errorMsgLower.includes('load failed');
       
       if (isNetworkError) {
         // Network error или timeout - НИКОГА не показваме грешка
