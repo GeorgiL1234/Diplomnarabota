@@ -160,6 +160,13 @@ function App() {
     setMessage(null);
   }, [view]);
 
+  // Затваряне на формата за създаване при превключване от "Моите обяви" към "Обяви"
+  useEffect(() => {
+    if (view !== "mine") {
+      setShowCreateForm(false);
+    }
+  }, [view]);
+
   // Подгряване на backend - при зареждане на приложението И при login/register (Render.com cold start ~50 сек)
   useEffect(() => {
     fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {});
