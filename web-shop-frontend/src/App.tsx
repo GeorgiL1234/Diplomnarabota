@@ -160,7 +160,10 @@ function App() {
     setMessage(null);
   }, [view]);
 
-  // Подгряване на backend при отваряне на login/register (Render.com cold start ~50 сек)
+  // Подгряване на backend - при зареждане на приложението И при login/register (Render.com cold start ~50 сек)
+  useEffect(() => {
+    fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {});
+  }, []);
   useEffect(() => {
     if (view === "login" || view === "register") {
       fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {});
@@ -868,8 +871,8 @@ function App() {
     }
   };
 
-  // Функция за компресия на снимка
-  const compressImage = (file: File, maxSizeMB: number = 2): Promise<File> => {
+  // Функция за компресия на снимка - по-агресивна за Render.com (ограничена памет)
+  const compressImage = (file: File, maxSizeMB: number = 0.8): Promise<File> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -879,8 +882,8 @@ function App() {
           let width = img.width;
           let height = img.height;
           
-          // Максимална ширина/височина 1920px
-          const maxDimension = 1920;
+          // Максимална ширина/височина 1280px - по-малко = по-бързо качване
+          const maxDimension = 1280;
           if (width > maxDimension || height > maxDimension) {
             if (width > height) {
               height = (height / width) * maxDimension;
@@ -901,8 +904,7 @@ function App() {
           
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Опитай се да компресираме до maxSizeMB
-          let quality = 0.9;
+          let quality = 0.85;
           const maxSizeBytes = maxSizeMB * 1024 * 1024;
           
           const tryCompress = () => {
@@ -944,20 +946,20 @@ function App() {
   const handleNewItemFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
-      const maxSize = 20 * 1024 * 1024; // 20MB
+      const maxSize = 10 * 1024 * 1024; // 10MB входен лимит
       
       if (file.size > maxSize) {
-        setError(`Снимката е твърде голяма! Максимален размер: 20MB. Вашата снимка: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        e.target.value = ''; // Изчисти input-а
+        setError(`Снимката е твърде голяма! Максимален размер: 10MB. Вашата снимка: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        e.target.value = '';
         setNewItemFile(null);
         return;
       }
       
-      // Компресирай снимката ако е над 2MB
-      if (file.size > 2 * 1024 * 1024) {
+      // Компресирай снимката ако е над 500KB - по-бързо качване на Render
+      if (file.size > 500 * 1024) {
         try {
-          setMessage('Компресиране на снимката...');
-          const compressedFile = await compressImage(file, 2);
+          setMessage(language === "bg" ? "Компресиране на снимката..." : "Compressing image...");
+          const compressedFile = await compressImage(file, 0.8);
           setNewItemFile(compressedFile);
           setMessage(null);
           setError(null);
@@ -1676,7 +1678,7 @@ function App() {
         <div className="alerts-container">
           {error && (
             <div className="alert alert-error">
-              <strong>{t.error}:</strong> {error}
+              <strong>{t.error}</strong> {error}
             </div>
           )}
           {message && (
