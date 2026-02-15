@@ -63,6 +63,12 @@ public class ItemController {
         }
     }
 
+    /** Прост health check - ако /items работи, и това работи */
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("OK");
+    }
+
     @GetMapping
     public List<Item> getAll() {
         return itemService.getAll();
