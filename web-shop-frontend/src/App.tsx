@@ -168,14 +168,15 @@ function App() {
     }
   }, [view]);
 
-  // Подгряване на backend - при зареждане на приложението И при login/register (Render.com cold start ~50 сек)
+  // Подгряване на backend - /health или /auth/health (Render.com cold start ~50 сек)
+  const warmBackend = () => {
+    fetch(`${API_BASE}/health`, { method: "GET" }).catch(() => 
+      fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {})
+    );
+  };
+  useEffect(() => { warmBackend(); }, []);
   useEffect(() => {
-    fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (view === "login" || view === "register") {
-      fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {});
-    }
+    if (view === "login" || view === "register") warmBackend();
   }, [view]);
 
   useEffect(() => {

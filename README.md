@@ -183,6 +183,10 @@ npm run dev
 
 **Решение (безплатно):** Настрой [UptimeRobot](https://uptimerobot.com) да прави HTTP заявка към:
 ```
+https://ВАШИЯТ-BACKEND-URL/health
+```
+или
+```
 https://ВАШИЯТ-BACKEND-URL/auth/health
 ```
 на всеки 10 минути. Така сървърът остава активен и регистрацията/входът са бързи.
