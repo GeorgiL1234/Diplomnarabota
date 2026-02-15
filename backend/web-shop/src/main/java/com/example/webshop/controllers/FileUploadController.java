@@ -43,7 +43,7 @@ public class FileUploadController {
     }
 
     @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional
+    @Transactional(timeout = 60) // Увеличаваме timeout до 60 секунди за големи файлове
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
             @RequestParam(value = "file") MultipartFile file,
@@ -112,12 +112,13 @@ public class FileUploadController {
                         .body("{\"error\":\"Failed to read file: " + e.getMessage().replace("\"", "\\\"").replace("\n", " ") + "\",\"status\":\"error\"}");
             }
             
-            // Проверка за размера - H2 TEXT колоната може да съхранява до 2GB, но нека ограничим до 10MB за сигурност
-            if (bytes.length > 10 * 1024 * 1024) { // Ако е над 10MB
-                System.out.println("ERROR: Image is too large (" + bytes.length + " bytes, max 10MB)");
+            // Проверка за размера - ограничаваме до 3MB за по-добра производителност
+            // Base64 encoding увеличава размера с ~33%, така че 3MB файл става ~4MB като base64
+            if (bytes.length > 3 * 1024 * 1024) { // Ако е над 3MB
+                System.out.println("ERROR: Image is too large (" + bytes.length + " bytes, max 3MB)");
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body("{\"error\":\"Image is too large. Maximum size is 10MB.\",\"status\":\"error\"}");
+                        .body("{\"error\":\"Image is too large. Maximum size is 3MB. Please compress or resize your image.\",\"status\":\"error\"}");
             }
             
             String base64Image;
@@ -141,23 +142,84 @@ public class FileUploadController {
             String dataUri = "data:" + contentType + ";base64," + base64Image;
             System.out.println("Data URI created, length: " + dataUri.length() + " characters");
             
-            // Проверка дали dataUri не е твърде голям (H2 TEXT поддържа до 2GB, но нека проверим)
-            if (dataUri.length() > 50 * 1024 * 1024) { // 50MB като string
-                System.out.println("ERROR: Data URI is too large (" + dataUri.length() + " characters)");
+            // Проверка дали dataUri не е null или празен
+            if (dataUri == null || dataUri.isEmpty()) {
+                System.out.println("ERROR: Data URI is null or empty after encoding!");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"Failed to create image data URI\",\"status\":\"error\"}");
+            }
+            
+            // Проверка дали dataUri не е твърде голям преди да опитаме да го запазим
+            // Base64 encoding увеличава размера с ~33%, така че 3MB файл става ~4MB като base64 string
+            // Ограничаваме до 5MB като string за сигурност
+            if (dataUri.length() > 5 * 1024 * 1024) { // 5MB като string
+                System.out.println("ERROR: Data URI is too large (" + dataUri.length() + " characters, max 5MB)");
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body("{\"error\":\"Image data is too large after encoding.\",\"status\":\"error\"}");
+                        .body("{\"error\":\"Image data is too large after encoding. Maximum size is 3MB. Please compress or resize your image.\",\"status\":\"error\"}");
             }
             
             try {
                 System.out.println("Setting image URL on item (length: " + dataUri.length() + " chars)...");
+                
                 item.setImageUrl(dataUri);
                 System.out.println("Image URL set on item");
                 
-                System.out.println("Saving item to repository with saveAndFlush...");
-                Item savedItem = itemRepository.saveAndFlush(item);
-                System.out.println("Item saved successfully with ID: " + savedItem.getId());
-                System.out.println("Saved item imageUrl length: " + (savedItem.getImageUrl() != null ? savedItem.getImageUrl().length() : "null"));
+                System.out.println("Saving item to repository with save()...");
+                // Използваме save() вместо saveAndFlush() за по-добра производителност
+                // Spring ще направи flush автоматично при commit на транзакцията
+                Item savedItem;
+                try {
+                    // Опитваме се да запазим item-а
+                    savedItem = itemRepository.save(item);
+                    System.out.println("Item saved successfully with ID: " + savedItem.getId());
+                    
+                    // Проверяваме дали imageUrl е запазен правилно
+                    String savedImageUrl = savedItem.getImageUrl();
+                    System.out.println("Saved item imageUrl length: " + (savedImageUrl != null ? savedImageUrl.length() : "null"));
+                    
+                    if (savedImageUrl == null || savedImageUrl.isEmpty()) {
+                        System.out.println("WARNING: Image URL is null or empty after save - trying to reload item");
+                        // Опитваме се да презаредим item-а от базата данни
+                        Item reloadedItem = itemRepository.findById(itemId).orElse(null);
+                        if (reloadedItem != null && reloadedItem.getImageUrl() != null && !reloadedItem.getImageUrl().isEmpty()) {
+                            System.out.println("SUCCESS: Image URL found after reload, length: " + reloadedItem.getImageUrl().length());
+                            savedItem = reloadedItem;
+                        } else {
+                            System.out.println("WARNING: Image URL still null after reload");
+                            // Не хвърляме грешка тук, защото обявата е създадена успешно
+                            // Просто логваме предупреждението
+                        }
+                    } else {
+                        System.out.println("SUCCESS: Image URL saved successfully, length: " + savedImageUrl.length());
+                    }
+                } catch (Exception saveException) {
+                    System.out.println("ERROR during save(): " + saveException.getClass().getName());
+                    System.out.println("ERROR message: " + saveException.getMessage());
+                    saveException.printStackTrace();
+                    if (saveException.getCause() != null) {
+                        System.out.println("ERROR cause: " + saveException.getCause().getClass().getName());
+                        System.out.println("ERROR cause message: " + saveException.getCause().getMessage());
+                        saveException.getCause().printStackTrace();
+                    }
+                    
+                    // Проверка за специфични типове грешки
+                    String errorMsg = "Failed to save item: " + saveException.getMessage();
+                    if (saveException instanceof org.hibernate.exception.DataException) {
+                        errorMsg = "Image data is too large for database. Please use a smaller image (max 3MB).";
+                    } else if (saveException instanceof org.springframework.dao.DataIntegrityViolationException) {
+                        errorMsg = "Database constraint violation. Please try again.";
+                    } else if (saveException.getMessage() != null && (
+                        saveException.getMessage().contains("too large") ||
+                        saveException.getMessage().contains("exceeds") ||
+                        saveException.getMessage().contains("length")
+                    )) {
+                        errorMsg = "Image data is too large. Maximum size is 3MB. Please compress or resize your image.";
+                    }
+                    
+                    throw new RuntimeException(errorMsg, saveException);
+                }
             } catch (Exception e) {
                 System.out.println("ERROR: Failed to save item to database");
                 System.out.println("Exception type: " + e.getClass().getName());
@@ -168,14 +230,29 @@ public class FileUploadController {
                     System.out.println("Cause message: " + e.getCause().getMessage());
                     e.getCause().printStackTrace();
                 }
-                String errorMsg = "Failed to save to database: " + e.getMessage();
-                if (e.getCause() != null) {
+                
+                // По-добра обработка на различни типове грешки
+                String errorMsg = "Failed to save to database";
+                if (e.getMessage() != null) {
+                    errorMsg += ": " + e.getMessage();
+                }
+                if (e.getCause() != null && e.getCause().getMessage() != null) {
                     errorMsg += " (Cause: " + e.getCause().getMessage() + ")";
                 }
+                
+                // Проверка за специфични типове грешки
+                if (e instanceof org.hibernate.exception.DataException) {
+                    errorMsg = "Image data is too large for database. Please use a smaller image.";
+                } else if (e instanceof org.springframework.dao.DataIntegrityViolationException) {
+                    errorMsg = "Database constraint violation. Please try again.";
+                } else if (e.getMessage() != null && e.getMessage().contains("too large")) {
+                    errorMsg = "Image is too large. Maximum size is 10MB.";
+                }
+                
                 // Връщаме JSON форматирана грешка
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body("{\"error\":\"" + errorMsg.replace("\"", "\\\"").replace("\n", " ") + "\",\"status\":\"error\",\"path\":\"/upload/" + itemId + "\"}");
+                        .body("{\"error\":\"" + errorMsg.replace("\"", "\\\"").replace("\n", " ").replace("\r", " ") + "\",\"status\":\"error\",\"path\":\"/upload/" + itemId + "\"}");
             }
 
             return ResponseEntity.ok()

@@ -15,7 +15,7 @@ public class Favorite {
     @Column(nullable = false)
     private String userEmail;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "item_id")
     private Item item;
 

@@ -26,7 +26,12 @@ export function ItemList({ items, view, loggedInEmail, selectedCategory, languag
   });
 
   if (filteredItems.length === 0) {
-    return <p className="info-text">Няма обяви.</p>;
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">📭</div>
+        <p className="info-text">Няма обяви.</p>
+      </div>
+    );
   }
 
   return (

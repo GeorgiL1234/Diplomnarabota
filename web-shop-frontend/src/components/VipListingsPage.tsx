@@ -32,7 +32,10 @@ export function VipListingsPage({
     <section className="listings-section">
       <div className="listings-main">
         <div className="listings-header">
-          <h2>VIP Обяви</h2>
+          <h2 style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '-40px', top: '50%', transform: 'translateY(-50%)', fontSize: '32px' }}>👑</span>
+            VIP Обяви
+          </h2>
         </div>
 
         {/* Филтър по категория */}

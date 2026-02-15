@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "reviews"})
 public class Item {
 
     @Id
@@ -16,7 +16,8 @@ public class Item {
     private String description;
     private double price;
     
-    @Column(columnDefinition = "TEXT", length = Integer.MAX_VALUE)
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
     // За фронтенд разделяне на "обяви" и "моите обяви"

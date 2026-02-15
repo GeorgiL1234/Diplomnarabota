@@ -28,6 +28,7 @@ function App() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
   // Запазваме email в localStorage за персистентност
   const [loggedInEmail, setLoggedInEmail] = useState<string | null>(() => {
@@ -60,6 +61,8 @@ function App() {
   const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("cash_on_delivery");
   const [newItemIsVip, setNewItemIsVip] = useState(false);
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
+  const [isCreatingListing, setIsCreatingListing] = useState(false);
+  const [pendingImageUpload, setPendingImageUpload] = useState<{file: File, itemId: number} | null>(null);
   
   // VIP Payment state
   const [showVipPayment, setShowVipPayment] = useState(false);
@@ -93,10 +96,12 @@ function App() {
     return savedEmail ? "all" : "login";
   });
   
-  // Debug: винаги показваме нещо
+  // При отваряне на формата за създаване - попълни email от логнатия потребител
   useEffect(() => {
-    console.log('App state:', { view, loggedInEmail: !!loggedInEmail, itemsCount: items.length });
-  }, [view, loggedInEmail, items.length]);
+    if (showCreateForm && loggedInEmail) {
+      setNewItemContactEmail(loggedInEmail);
+    }
+  }, [showCreateForm, loggedInEmail]);
   
   // messages page
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
@@ -149,18 +154,46 @@ function App() {
     }
   }, [loggedInEmail]);
 
+  // Изчистване на съобщения при смяна на страница
+  useEffect(() => {
+    setError(null);
+    setMessage(null);
+  }, [view]);
+
+  // Подгряване на backend при отваряне на login/register (Render.com cold start ~50 сек)
+  useEffect(() => {
+    if (view === "login" || view === "register") {
+      fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(() => {});
+    }
+  }, [view]);
+
   useEffect(() => {
     // Зареждаме съобщенията когато отворим страницата за съобщения
     if (view === "messages" && loggedInEmail) {
-      loadAllMessages();
+      console.log("Messages page opened, loading messages for:", loggedInEmail);
+      // Малко забавяне за да се гарантира че всичко е готово
+      const timer = setTimeout(() => {
+        loadAllMessages();
+      }, 100);
+      return () => clearTimeout(timer);
     }
     // Зареждаме поръчките когато отворим страницата за поръчки
     if (view === "orders" && loggedInEmail) {
       loadAllOrders();
     }
-    // Зареждаме любимите когато отворим страницата за любими
+    // Зареждаме любимите САМО когато потребителят наистина отвори страницата за любими
+    // НЕ зареждаме автоматично при login/register
     if (view === "favorites" && loggedInEmail) {
-      loadFavorites();
+      const timer = setTimeout(() => {
+        loadFavorites();
+      }, 200); // Малко забавяне за да се гарантира че backend-ът е готов
+      return () => clearTimeout(timer);
+    } else if (view !== "favorites") {
+      // Ако не сме на страницата за любими, изчисти грешките за любими
+      // Това предотвратява показването на грешки от любими на други страници
+      if (error && error.includes("любими")) {
+        setError(null);
+      }
     }
   }, [view, loggedInEmail]);
 
@@ -206,11 +239,27 @@ function App() {
     
     try {
       console.log("Register attempt:", { email: registerEmail, fullName });
+      
+      // Timeout 90 сек - Render.com cold start може да отнеме 50-60 сек
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn("Registration request timeout after 90 seconds");
+        controller.abort();
+      }, 90000);
+      
+      console.log("Sending registration request to:", `${API_BASE}/auth/register`);
+      const requestStartTime = Date.now();
+      
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({ email: registerEmail, password: registerPassword, fullName }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      const requestDuration = Date.now() - requestStartTime;
+      console.log(`Registration request completed in ${requestDuration}ms`);
       
       const responseText = await res.text();
       console.log("Register response status:", res.status, "body:", responseText);
@@ -243,18 +292,47 @@ function App() {
         updateLoggedInEmail(registeredEmail);
         setView("all");
         
+        // Изчисти грешките преди да заредим данни
+        setError(null);
+        
         // Зареди items след успешна регистрация с по-дълго забавяне за да се обнови state
         setTimeout(() => {
           console.log("Loading items after registration, loggedInEmail:", registeredEmail);
           loadItems();
+          // Не зареждаме любими веднага - ще се заредят когато потребителят отвори страницата
+          setFavorites([]);
         }, 300);
       } else {
         console.error("Registration failed - unexpected response:", trimmedResponse);
         throw new Error(trimmedResponse || t.errorRegistration);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Register error:", err);
-      setError(String(err));
+      console.error("Error type:", err.name);
+      console.error("Error message:", err.message);
+      
+      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+        setError(language === "bg" 
+          ? "Заявката отне твърде много време. Моля, проверете интернет връзката и опитайте отново." 
+          : language === "en" 
+          ? "Request took too long. Please check your internet connection and try again." 
+          : "Запрос занял слишком много времени. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        setError(language === "bg" 
+          ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
+          : language === "en" 
+          ? "Cannot connect to server. Please check your internet connection and try again." 
+          : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
+      } else if (err.message?.includes('Email already in use') || err.message?.includes('already exists')) {
+        setError(language === "bg" 
+          ? "Този email вече се използва. Моля, използвайте друг email." 
+          : language === "en" 
+          ? "This email is already in use. Please use a different email." 
+          : "Этот email уже используется. Пожалуйста, используйте другой email.");
+      } else {
+        const errorMsg = err.message || String(err) || (language === "bg" ? "Грешка при регистрация" : language === "en" ? "Registration error" : "Ошибка регистрации");
+        setError(errorMsg);
+      }
     } finally {
       setIsRegistering(false);
     }
@@ -263,6 +341,8 @@ function App() {
   // auth – login
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    if (isLoggingIn) return;
+    
     setError(null);
     setMessage(null);
     
@@ -272,14 +352,22 @@ function App() {
       return;
     }
     
+    setIsLoggingIn(true);
+    
     try {
       console.log("Login attempt:", { email: loginEmail });
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        signal: controller.signal,
       });
       
+      clearTimeout(timeoutId);
       const responseText = await res.text();
       console.log("Login response status:", res.status, "body:", responseText);
       
@@ -310,6 +398,13 @@ function App() {
         setMessage(t.successLogin);
         setView("all"); // След успешен вход, отиваме на обявите
         
+        // Изчисти грешките преди да заредим данни
+        setError(null);
+        
+        // Изчисти любимите - ще се заредят когато потребителят отвори страницата
+        setFavorites([]);
+        setFavoriteItemIds(new Set());
+        
         // Зареди items след успешен вход с по-дълго забавяне за да се обнови state
         setTimeout(() => {
           console.log("Loading items after login, loggedInEmail:", loggedInUserEmail);
@@ -319,9 +414,25 @@ function App() {
         console.error("Login failed - unexpected response:", trimmedResponse);
         throw new Error(trimmedResponse || t.errorLogin);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login error:", err);
-      setError(String(err));
+      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+        setError(language === "bg" 
+          ? "Заявката отне твърде много време. Моля, проверете интернет връзката и опитайте отново." 
+          : language === "en" 
+          ? "Request took too long. Please check your internet connection and try again." 
+          : "Запрос занял слишком много времени. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        setError(language === "bg" 
+          ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
+          : language === "en" 
+          ? "Cannot connect to server. Please check your internet connection and try again." 
+          : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
+      } else {
+        setError(err.message || String(err) || t.errorLogin);
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -449,16 +560,24 @@ function App() {
         : "VIP статус успешно активирован! Платеж 2€ принят.");
       
       // Затвори VIP payment модала ПРЕДИ да зареждаме items
+      const completedItemId = pendingVipItemId;
       setShowVipPayment(false);
       setPendingVipItemId(null);
       setError(null); // Изчисти грешките
       
+      // Ако има pending image upload, качи я сега
+      if (pendingImageUpload && pendingImageUpload.itemId === completedItemId) {
+        console.log('Uploading pending image after VIP payment');
+        uploadImageForItem(pendingImageUpload.file, pendingImageUpload.itemId, false);
+        setPendingImageUpload(null);
+      }
+      
       // Презареди items и selectedItem
       try {
         await loadItems();
-        if (selectedItem && selectedItem.id === pendingVipItemId) {
+        if (selectedItem && selectedItem.id === completedItemId) {
           try {
-            const updatedItem = await fetch(`${API_BASE}/items/${pendingVipItemId}`).then(r => r.json());
+            const updatedItem = await fetch(`${API_BASE}/items/${completedItemId}`).then(r => r.json());
             setSelectedItem(updatedItem);
           } catch (err) {
             console.error("Failed to reload item:", err);
@@ -479,17 +598,146 @@ function App() {
     setShowVipPayment(false);
     setPendingVipItemId(null);
     setMessage(t.successListingCreated);
+    // Ако има pending image upload, качи я сега
+    if (pendingImageUpload) {
+      uploadImageForItem(pendingImageUpload.file, pendingImageUpload.itemId, false);
+      setPendingImageUpload(null);
+    }
+  };
+
+  // Функция за качване на снимка към обява
+  const uploadImageForItem = async (file: File, itemId: number, suppressErrors: boolean = false) => {
+    if (!loggedInEmail) return;
+    
+    try {
+      console.log('Uploading image for item:', itemId);
+      console.log('File:', file.name, file.size, 'bytes');
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("ownerEmail", loggedInEmail);
+      console.log('Sending upload request to:', `${API_BASE}/upload/${itemId}`);
+      
+      // Добавяме timeout от 30 секунди за качване на снимка
+      const uploadController = new AbortController();
+      const uploadTimeoutId = setTimeout(() => uploadController.abort(), 30000);
+      
+      const uploadRes = await fetch(`${API_BASE}/upload/${itemId}`, {
+        method: "POST",
+        body: formData,
+        signal: uploadController.signal,
+      });
+      
+      clearTimeout(uploadTimeoutId);
+      
+      console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
+      
+      if (uploadRes.ok) {
+        const responseText = await uploadRes.text();
+        console.log('Upload response:', responseText);
+        
+        let isSuccess = false;
+        try {
+          const responseJson = JSON.parse(responseText);
+          isSuccess = responseJson.status === "success" || responseJson.message?.includes("success");
+        } catch {
+          isSuccess = responseText.includes("success") || responseText.includes("UPLOAD_OK");
+        }
+        
+        if (isSuccess) {
+          if (!suppressErrors && !showVipPayment) {
+            setMessage(t.successListingImageUploaded);
+          }
+          // Презареди items и обнови selectedItem
+          setTimeout(() => {
+            loadItems();
+            if (itemId) {
+              fetch(`${API_BASE}/items/${itemId}`)
+                .then((res) => res.json())
+                .then((updated) => setSelectedItem(updated))
+                .catch((err) => console.error("Failed to reload item:", err));
+            }
+          }, 500);
+        } else {
+          throw new Error(responseText || "Unknown upload error");
+        }
+      } else {
+        const errorText = await uploadRes.text();
+        console.error('Upload failed:', uploadRes.status, errorText);
+        
+        let errorMessage = errorText;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorText;
+        } catch {
+          errorMessage = errorText;
+        }
+        
+        // Покажи грешката само ако не сме в VIP payment модал и не suppressErrors
+        if (!suppressErrors && !showVipPayment) {
+          if (uploadRes.status === 413 || uploadRes.status === 413 || errorMessage.toLowerCase().includes('too large') || errorMessage.toLowerCase().includes('прекалено голям')) {
+            setError(language === "bg" 
+              ? "Обявата е създадена, но снимката е твърде голяма! Моля, изберете снимка под 3MB." 
+              : language === "en" 
+              ? "Listing created, but image is too large! Please select an image under 3MB."
+              : "Объявление создано, но изображение слишком большое! Пожалуйста, выберите изображение менее 3 МБ.");
+          } else {
+            const friendlyMessage = language === "bg"
+              ? `Обявата е създадена, но снимката не беше качена: ${errorMessage}`
+              : language === "en"
+              ? `Listing created, but image was not uploaded: ${errorMessage}`
+              : `Объявление создано, но изображение не загружено: ${errorMessage}`;
+            setError(friendlyMessage);
+          }
+        } else {
+          // Ако сме в VIP модал или suppressErrors, само логваме
+          console.warn('Image upload failed (suppressed):', errorMessage);
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (uploadErr: any) {
+      console.error('Upload exception:', uploadErr);
+      
+      let errorMessage = uploadErr.message || String(uploadErr);
+      
+      if (uploadErr.name === 'AbortError') {
+        errorMessage = language === "bg" 
+          ? "Качването на снимката отне твърде много време. Моля, опитайте отново или изберете по-малка снимка." 
+          : language === "en" 
+          ? "Image upload took too long. Please try again or select a smaller image."
+          : "Загрузка изображения заняла слишком много времени. Пожалуйста, попробуйте снова или выберите меньшее изображение.";
+      } else if (errorMessage.includes('Internal Server Error') || errorMessage.includes('500')) {
+        errorMessage = language === "bg" 
+          ? "Грешка на сървъра при качване на снимката. Моля, опитайте отново или изберете друга снимка." 
+          : language === "en" 
+          ? "Server error uploading image. Please try again or select a different image."
+          : "Ошибка сервера при загрузке изображения. Пожалуйста, попробуйте снова или выберите другое изображение.";
+      }
+      
+      // Покажи грешката само ако не сме в VIP payment модал и не suppressErrors
+      if (!suppressErrors && !showVipPayment) {
+        setError(`${t.errorImageNotUploaded}: ${errorMessage}`);
+      } else {
+        console.warn('Image upload error (suppressed):', errorMessage);
+      }
+    }
   };
 
   // създаване на обява
   const handleCreateListing = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Ако вече се обработва създаването, не прави нищо
+    if (isCreatingListing) {
+      return;
+    }
+    
     if (!loggedInEmail) {
       setError(t.errorMustLogin);
       return;
     }
     setError(null);
     setMessage(null);
+    setIsCreatingListing(true);
     
     // Валидация: поне email или телефон трябва да е попълнен
     const emailTrimmed = newItemContactEmail.trim();
@@ -535,6 +783,10 @@ function App() {
         isVip: newItemIsVip,
       });
       
+      // Добавяме timeout от 15 секунди за създаване на обява
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунди timeout
+      
       const res = await fetch(`${API_BASE}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
@@ -549,7 +801,10 @@ function App() {
           paymentMethod: newItemPaymentMethod || null,
           isVip: false, // Винаги създаваме като не-VIP първо, после активираме ако е платено
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       console.log("Create listing response status:", res.status);
       
@@ -597,97 +852,16 @@ function App() {
       }
       
       // Ако има избрана снимка, качи я автоматично (асинхронно, без да блокира UI)
+      // Ако е избрано VIP, запази снимката за качване след плащането
       if (fileToUpload && createdItem.id) {
-        // Изпълни качването асинхронно, без да блокира UI
-        (async () => {
-          try {
-            console.log('Uploading image for item:', createdItem.id);
-            console.log('File:', fileToUpload.name, fileToUpload.size, 'bytes');
-            const formData = new FormData();
-            formData.append("file", fileToUpload);
-            formData.append("ownerEmail", loggedInEmail);
-            console.log('Sending upload request to:', `${API_BASE}/upload/${createdItem.id}`);
-            
-            const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
-              method: "POST",
-              body: formData,
-              // НЕ добавяме Content-Type header - браузърът трябва да го зададе автоматично с boundary
-            });
-            
-            console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
-            
-            if (uploadRes.ok) {
-              const responseText = await uploadRes.text();
-              console.log('Upload response:', responseText);
-              
-              // Проверка дали response-ът е успешен (може да е JSON или текст)
-              let isSuccess = false;
-              try {
-                const responseJson = JSON.parse(responseText);
-                isSuccess = responseJson.status === "success" || responseJson.message?.includes("success");
-              } catch {
-                // Ако не е JSON, провери дали съдържа "success" или "UPLOAD_OK"
-                isSuccess = responseText.includes("success") || responseText.includes("UPLOAD_OK");
-              }
-              
-              if (isSuccess) {
-                // Покажи съобщение само ако не сме в VIP payment модал
-                if (!showVipPayment) {
-                  setMessage(t.successListingImageUploaded);
-                }
-                // Презареди items и обнови selectedItem, за да видим новата снимка
-                setTimeout(() => {
-                  loadItems();
-                  // Презареди selectedItem с актуализираните данни
-                  if (createdItem.id) {
-                    fetch(`${API_BASE}/items/${createdItem.id}`)
-                      .then((res) => res.json())
-                      .then((updated) => setSelectedItem(updated))
-                      .catch((err) => console.error("Failed to reload item:", err));
-                  }
-                }, 500);
-              } else {
-                throw new Error(responseText || "Unknown upload error");
-              }
-            } else {
-              const errorText = await uploadRes.text();
-              console.error('Upload failed:', uploadRes.status, errorText);
-              
-              // Опитай се да парсне JSON грешката ако е възможно
-              let errorMessage = errorText;
-              try {
-                const errorJson = JSON.parse(errorText);
-                errorMessage = errorJson.error || errorJson.message || errorText;
-              } catch {
-                // Ако не е JSON, използвай текста както е
-                errorMessage = errorText;
-              }
-              
-              // Покажи грешката само ако не сме в VIP payment модал
-              if (!showVipPayment) {
-                if (uploadRes.status === 413) {
-                  setError(language === "bg" 
-                    ? "Снимката е твърде голяма! Моля, изберете снимка под 20MB." 
-                    : language === "en" 
-                    ? "Image is too large! Please select an image under 20MB."
-                    : "Изображение слишком большое! Пожалуйста, выберите изображение менее 20 МБ.");
-                } else {
-                  setError(`${t.errorImageNotUploaded}: ${errorMessage}`);
-                }
-              } else {
-                // Ако сме в VIP payment модал, покажи грешката там
-                console.error('Image upload failed during VIP payment:', errorMessage);
-              }
-              throw new Error(errorMessage);
-            }
-          } catch (uploadErr: any) {
-            console.error('Upload exception:', uploadErr);
-            // Покажи грешката само ако не сме в VIP payment модал
-            if (!showVipPayment) {
-              setError(`${t.errorImageNotUploaded} ${uploadErr.message}`);
-            }
-          }
-        })();
+        if (shouldMakeVip) {
+          // Ако е VIP, запази снимката за качване след успешно плащане
+          setPendingImageUpload({ file: fileToUpload, itemId: createdItem.id });
+          console.log('VIP selected - image upload will happen after payment');
+        } else {
+          // Ако не е VIP, качи снимката веднага
+          uploadImageForItem(fileToUpload, createdItem.id, false);
+        }
       }
     } catch (err) {
       setError(String(err));
@@ -854,29 +1028,117 @@ function App() {
 
   // Зареждане на всички изпратени съобщения (като купувач)
   const loadSentMessages = async () => {
-    if (!loggedInEmail) return;
+    if (!loggedInEmail) {
+      console.warn("Cannot load sent messages: no logged in email");
+      return;
+    }
     try {
-      const res = await fetch(`${API_BASE}/items/messages/sent/${encodeURIComponent(loggedInEmail)}`);
-      if (!res.ok) throw new Error("Failed to load sent messages");
+      console.log("Loading sent messages for:", loggedInEmail);
+      const url = `${API_BASE}/items/messages/sent/${encodeURIComponent(loggedInEmail)}`;
+      console.log("Fetching from URL:", url);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch(url, {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log("Sent messages response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Failed to load sent messages:", res.status, errorText);
+        // При 404 или празен списък, задаваме празен масив
+        if (res.status === 404) {
+          console.log("No sent messages found (404)");
+          setSentMessages([]);
+          return;
+        }
+        throw new Error(`Failed to load sent messages: ${res.status} ${errorText}`);
+      }
+      
       const data = await res.json();
+      console.log("Loaded sent messages:", Array.isArray(data) ? data.length : "not an array", data);
+      
+      if (!Array.isArray(data)) {
+        console.error("Sent messages response is not an array:", typeof data, data);
+        setSentMessages([]);
+        return;
+      }
+      
       setSentMessages(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading sent messages:", err);
-      setSentMessages([]);
+      if (err.name === 'AbortError') {
+        console.warn("Sent messages request timed out");
+        // Не изчистваме съобщенията при timeout - може да са временни проблеми
+        return;
+      }
+      // При други грешки, задаваме празен масив само ако няма вече заредени съобщения
+      if (sentMessages.length === 0) {
+        setSentMessages([]);
+      }
     }
   };
 
   // Зареждане на всички получени съобщения (като продавач)
   const loadReceivedMessages = async () => {
-    if (!loggedInEmail) return;
+    if (!loggedInEmail) {
+      console.warn("Cannot load received messages: no logged in email");
+      return;
+    }
     try {
-      const res = await fetch(`${API_BASE}/items/messages/received/${encodeURIComponent(loggedInEmail)}`);
-      if (!res.ok) throw new Error("Failed to load received messages");
+      console.log("Loading received messages for:", loggedInEmail);
+      const url = `${API_BASE}/items/messages/received/${encodeURIComponent(loggedInEmail)}`;
+      console.log("Fetching from URL:", url);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch(url, {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log("Received messages response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Failed to load received messages:", res.status, errorText);
+        // При 404 или празен списък, задаваме празен масив
+        if (res.status === 404) {
+          console.log("No received messages found (404)");
+          setReceivedMessages([]);
+          return;
+        }
+        throw new Error(`Failed to load received messages: ${res.status} ${errorText}`);
+      }
+      
       const data = await res.json();
+      console.log("Loaded received messages:", Array.isArray(data) ? data.length : "not an array", data);
+      
+      if (!Array.isArray(data)) {
+        console.error("Received messages response is not an array:", typeof data, data);
+        setReceivedMessages([]);
+        return;
+      }
+      
       setReceivedMessages(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading received messages:", err);
-      setReceivedMessages([]);
+      if (err.name === 'AbortError') {
+        console.warn("Received messages request timed out");
+        // Не изчистваме съобщенията при timeout - може да са временни проблеми
+        return;
+      }
+      // При други грешки, задаваме празен масив само ако няма вече заредени съобщения
+      if (receivedMessages.length === 0) {
+        setReceivedMessages([]);
+      }
     }
   };
 
@@ -920,25 +1182,87 @@ function App() {
 
   // Зареждане на любими обяви
   const loadFavorites = async () => {
-    if (!loggedInEmail) return;
+    if (!loggedInEmail) {
+      setFavorites([]);
+      setFavoriteItemIds(new Set());
+      return;
+    }
     try {
-      const res = await fetch(`${API_BASE}/favorites/${encodeURIComponent(loggedInEmail)}`);
+      // Добавяме timeout за да не замръзва
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунди timeout
+      
+      const res = await fetch(`${API_BASE}/favorites/${encodeURIComponent(loggedInEmail)}`, {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!res.ok) {
+        // Ако е 404, значи няма любими - това е нормално за нови потребители
+        if (res.status === 404) {
+          console.log("No favorites found (404) - this is normal for new users");
+          setFavorites([]);
+          setFavoriteItemIds(new Set());
+          return;
+        }
         const errorText = await res.text();
         console.error("Failed to load favorites:", errorText);
         throw new Error(errorText || "Failed to load favorites");
       }
       const data = await res.json();
       console.log("Favorites loaded:", data);
-      setFavorites(data);
+      const favoritesArray = Array.isArray(data) ? data : [];
+      setFavorites(favoritesArray);
       // Създаваме Set от ID-та на любимите обяви за бърза проверка
-      const favoriteIds = new Set<number>(data.map((f: Favorite) => f.item?.id).filter((id: any): id is number => id != null && typeof id === 'number'));
+      const favoriteIds = new Set<number>(favoritesArray.map((f: Favorite) => f.item?.id).filter((id: any): id is number => id != null && typeof id === 'number'));
       setFavoriteItemIds(favoriteIds);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading favorites:", err);
-      setError(`Грешка при зареждане на любими: ${err instanceof Error ? err.message : String(err)}`);
+      
+      // ВИНАГИ изчистваме любимите при грешка
       setFavorites([]);
       setFavoriteItemIds(new Set());
+      
+      // НИКОГА не показваме грешка за network errors или timeout - те са нормални
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorString = String(err).toLowerCase();
+      const errorMsgLower = errorMessage ? errorMessage.toLowerCase() : '';
+      
+      // Проверка за network errors - много по-агресивна
+      const isNetworkError = 
+        err.name === 'AbortError' || 
+        err.name === 'TypeError' ||
+        errorString.includes('failed to fetch') ||
+        errorString.includes('networkerror') ||
+        errorString.includes('fetch') ||
+        errorString.includes('network') ||
+        errorString.includes('cors') ||
+        errorMsgLower.includes('failed to fetch') ||
+        errorMsgLower.includes('networkerror') ||
+        errorMsgLower.includes('fetch') ||
+        errorMsgLower.includes('network') ||
+        errorMsgLower.includes('cors') ||
+        errorMsgLower.includes('connection') ||
+        errorMsgLower.includes('timeout');
+      
+      if (isNetworkError) {
+        // Network error или timeout - НИКОГА не показваме грешка
+        console.warn("Network error/timeout loading favorites - silently ignoring, user will see empty list");
+        // НЕ показваме грешка изобщо - потребителят ще види празен списък или ще опита отново
+        return;
+      }
+      
+      // Само при реални backend грешки (не network errors) показваме съобщение
+      // И то само ако сме на страницата за любими И грешката не е network error
+      const currentView = view;
+      if (currentView === "favorites" && !isNetworkError) {
+        // Само ако е реална грешка от backend (не network error)
+        setError(`Грешка при зареждане на любими: ${errorMessage}`);
+      } else {
+        // Ако не сме на страницата за любими или е network error, само логваме
+        console.warn("Error loading favorites:", err);
+      }
     }
   };
 
@@ -1031,44 +1355,106 @@ function App() {
       setError(t.cannotAskOwnListing);
       return;
     }
+    if (!newQuestion || !newQuestion.trim()) {
+      setError(language === "bg" ? "Моля, въведете съобщение" : language === "en" ? "Please enter a message" : "Пожалуйста, введите сообщение");
+      return;
+    }
     setError(null);
     setMessage(null);
+    
+    console.log("Sending message:", { itemId: selectedItem.id, senderEmail: loggedInEmail, content: newQuestion });
+    
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунди timeout
+      
       const res = await fetch(`${API_BASE}/items/${selectedItem.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({
           senderEmail: loggedInEmail,
-          content: newQuestion,
+          content: newQuestion.trim(),
         }),
+        signal: controller.signal,
       });
-      if (!res.ok) throw new Error(t.errorSendQuestion);
-      await res.json(); // Съобщението е изпратено
+      
+      clearTimeout(timeoutId);
+      
+      console.log("Message response status:", res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Message error response:", errorText);
+        throw new Error(errorText || t.errorSendQuestion);
+      }
+      
+      const savedMessage = await res.json();
+      console.log("Message saved successfully:", savedMessage);
+      
       setNewQuestion("");
       setMessage(t.successQuestionSent);
-      setSelectedItem(null);
-      // Презареди всички съобщения
+      
+      // Презареди всички съобщения ПРЕДИ да изчистим selectedItem
       await loadAllMessages();
-    } catch (err) {
-      setError(String(err));
+      
+      // Изчисти selectedItem след успешно изпращане и зареждане
+      setTimeout(() => {
+        setSelectedItem(null);
+      }, 500);
+    } catch (err: any) {
+      console.error("Error sending message:", err);
+      if (err.name === 'AbortError') {
+        setError(language === "bg" 
+          ? "Заявката отне твърде много време. Моля, опитайте отново." 
+          : language === "en" 
+          ? "Request took too long. Please try again." 
+          : "Запрос занял слишком много времени. Пожалуйста, попробуйте снова.");
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        setError(language === "bg" 
+          ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
+          : language === "en" 
+          ? "Cannot connect to server. Please check your internet connection and try again." 
+          : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
+      } else {
+        setError(err.message || String(err) || t.errorSendQuestion);
+      }
     }
   };
 
   // изпращане на отговор
   const handleSendAnswer = async (messageId: number) => {
-    if (!newAnswer[messageId] || !loggedInEmail) return;
+    if (!newAnswer[messageId] || !newAnswer[messageId].trim() || !loggedInEmail) return;
     setError(null);
     setMessage(null);
+    
+    console.log("Sending answer for message ID:", messageId, "response:", newAnswer[messageId]);
+    
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунди timeout
+      
       const res = await fetch(`${API_BASE}/items/messages/${messageId}/response`, {
         method: "PUT",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify({
-          response: newAnswer[messageId],
+          response: newAnswer[messageId].trim(),
         }),
+        signal: controller.signal,
       });
-      if (!res.ok) throw new Error(t.errorSendAnswer);
-      await res.json(); // Отговорът е изпратен
+      
+      clearTimeout(timeoutId);
+      
+      console.log("Answer response status:", res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Answer error response:", errorText);
+        throw new Error(errorText || t.errorSendAnswer);
+      }
+      
+      const updatedMessage = await res.json();
+      console.log("Answer saved successfully:", updatedMessage);
+      
       setNewAnswer((prev) => {
         const updated = { ...prev };
         delete updated[messageId];
@@ -1077,8 +1463,23 @@ function App() {
       setMessage(t.successAnswerSent);
       // Презареди всички съобщения
       await loadAllMessages();
-    } catch (err) {
-      setError(String(err));
+    } catch (err: any) {
+      console.error("Error sending answer:", err);
+      if (err.name === 'AbortError') {
+        setError(language === "bg" 
+          ? "Заявката отне твърде много време. Моля, опитайте отново." 
+          : language === "en" 
+          ? "Request took too long. Please try again." 
+          : "Запрос занял слишком много времени. Пожалуйста, попробуйте снова.");
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        setError(language === "bg" 
+          ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
+          : language === "en" 
+          ? "Cannot connect to server. Please check your internet connection and try again." 
+          : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
+      } else {
+        setError(err.message || String(err) || t.errorSendAnswer);
+      }
     }
   };
 
@@ -1244,6 +1645,7 @@ function App() {
             setError(null);
           }}
           error={error}
+          isLoggingIn={isLoggingIn}
         />
       )}
 
@@ -1267,14 +1669,18 @@ function App() {
         />
       )}
 
-      {error && (
-        <div className="alert alert-error">
-          <strong>{t.error}</strong> {error}
-        </div>
-      )}
-      {message && (
-        <div className="alert alert-success">
-          <strong>{message}</strong>
+      {(error || message) && (
+        <div className="alerts-container">
+          {error && (
+            <div className="alert alert-error">
+              <strong>{t.error}:</strong> {error}
+            </div>
+          )}
+          {message && (
+            <div className="alert alert-success">
+              {message}
+            </div>
+          )}
         </div>
       )}
 
@@ -1420,6 +1826,8 @@ function App() {
               isVip={newItemIsVip}
               language={language}
               file={newItemFile}
+              isCreating={isCreatingListing}
+              loggedInEmail={loggedInEmail}
               onTitleChange={setNewItemTitle}
               onDescriptionChange={setNewItemDescription}
               onPriceChange={setNewItemPrice}
@@ -1432,22 +1840,24 @@ function App() {
               onSubmit={handleCreateListing}
             />
 
-            {/* Филтър по категория */}
-            <div className="category-filter">
-              <label>
-                <strong>Категория:</strong>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            {/* Филтър по категория - скрит когато формата за създаване е отворена */}
+            {!showCreateForm && (
+              <div className="category-filter">
+                <label>
+                  <strong>Категория:</strong>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
 
             {view === "mine" && !loggedInEmail && (
               <p className="info-text">

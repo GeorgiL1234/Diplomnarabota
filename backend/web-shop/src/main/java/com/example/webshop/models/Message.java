@@ -1,5 +1,6 @@
 package com.example.webshop.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -23,8 +24,9 @@ public class Message {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
     @JoinColumn(name = "item_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "reviews"})
     private Item item;
 
     public Message() {
