@@ -20,6 +20,7 @@ type MessagesPageProps = {
   onClearSelection: () => void;
   onSendQuestion: (e: FormEvent) => void;
   onSendAnswer: (messageId: number) => void;
+  isSendingQuestion?: boolean;
   onViewItem: (item: Item) => void;
 };
 
@@ -39,6 +40,7 @@ export function MessagesPage({
   onSendQuestion,
   onSendAnswer,
   onViewItem,
+  isSendingQuestion = false,
 }: MessagesPageProps) {
   const t = translations[language];
 
@@ -61,13 +63,21 @@ export function MessagesPage({
                   placeholder={t.questionPlaceholder}
                   rows={3}
                   required
+                  disabled={isSendingQuestion}
                 />
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
-                <button type="submit" className="btn-primary">
-                  {t.sendMessage}
+                <button type="submit" className={`btn-primary ${isSendingQuestion ? "btn-loading" : ""}`} disabled={isSendingQuestion}>
+                  {isSendingQuestion ? (
+                    <>
+                      <span className="btn-icon spinning">⏳</span>
+                      {language === "bg" ? "Изпраща се..." : language === "en" ? "Sending..." : "Отправка..."}
+                    </>
+                  ) : (
+                    t.sendMessage
+                  )}
                 </button>
-                <button type="button" className="btn-secondary" onClick={onClearSelection}>
+                <button type="button" className="btn-secondary" onClick={onClearSelection} disabled={isSendingQuestion}>
                   {t.cancel}
                 </button>
               </div>

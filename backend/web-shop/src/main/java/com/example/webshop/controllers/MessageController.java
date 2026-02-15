@@ -1,5 +1,6 @@
 package com.example.webshop.controllers;
 
+import com.example.webshop.dto.AddMessageRequest;
 import com.example.webshop.models.Message;
 import com.example.webshop.services.MessageService;
 import org.slf4j.Logger;
@@ -27,14 +28,18 @@ public class MessageController {
     @PostMapping(value = "/{itemId}/messages", consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
     public ResponseEntity<?> addMessage(
             @PathVariable Long itemId,
-            @RequestBody Message message) {
+            @RequestBody AddMessageRequest request) {
         try {
             logger.info("Received message creation request for item ID: {}", itemId);
             
-            if (message == null) {
-                logger.error("Message is null");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Message data is required");
+            if (request == null) {
+                logger.error("Request is null");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{\"error\":\"Message data is required\"}");
             }
+            
+            Message message = new Message();
+            message.setSenderEmail(request.getSenderEmail());
+            message.setContent(request.getContent());
             
             Message saved = messageService.addMessage(itemId, message);
             logger.info("Message created successfully with ID: {} for item ID: {}", saved.getId(), itemId);

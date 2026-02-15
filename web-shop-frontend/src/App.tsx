@@ -88,6 +88,7 @@ function App() {
   // messages/questions
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState<{ [key: number]: string }>({});
+  const [isSendingQuestion, setIsSendingQuestion] = useState(false);
 
   // view / навигация
   // Проверяваме дали има запазен email в localStorage при зареждане
@@ -1362,6 +1363,7 @@ function App() {
   // изпращане на въпрос
   const handleSendQuestion = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSendingQuestion) return;
     if (!selectedItem || !loggedInEmail) return;
     if (selectedItem.ownerEmail === loggedInEmail) {
       setError(t.cannotAskOwnListing);
@@ -1373,6 +1375,7 @@ function App() {
     }
     setError(null);
     setMessage(null);
+    setIsSendingQuestion(true);
     
     console.log("Sending message:", { itemId: selectedItem.id, senderEmail: loggedInEmail, content: newQuestion });
     
@@ -1415,21 +1418,24 @@ function App() {
       }, 500);
     } catch (err: any) {
       console.error("Error sending message:", err);
+      const errMsg = err instanceof Error ? err.message : String(err);
       if (err.name === 'AbortError') {
         setError(language === "bg" 
           ? "Заявката отне твърде много време. Моля, опитайте отново." 
           : language === "en" 
           ? "Request took too long. Please try again." 
           : "Запрос занял слишком много времени. Пожалуйста, попробуйте снова.");
-      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      } else if (errMsg?.includes('Failed to fetch') || errMsg?.includes('NetworkError')) {
         setError(language === "bg" 
           ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
           : language === "en" 
           ? "Cannot connect to server. Please check your internet connection and try again." 
           : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
       } else {
-        setError(err.message || String(err) || t.errorSendQuestion);
+        setError(errMsg || t.errorSendQuestion);
       }
+    } finally {
+      setIsSendingQuestion(false);
     }
   };
 
@@ -1763,6 +1769,7 @@ function App() {
             setNewQuestion("");
           }}
           onSendQuestion={handleSendQuestion}
+          isSendingQuestion={isSendingQuestion}
           onSendAnswer={(messageId) => {
             handleSendAnswer(messageId);
             loadAllMessages();
