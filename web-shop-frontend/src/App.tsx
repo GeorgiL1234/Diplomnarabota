@@ -17,6 +17,7 @@ import { OrdersPage } from "./components/OrdersPage";
 import { FavoritesPage } from "./components/FavoritesPage";
 import { VipListingsPage } from "./components/VipListingsPage";
 import { VipPaymentForm } from "./components/VipPaymentForm";
+import { LandingPage } from "./components/LandingPage";
 
 function App() {
   // auth - login state (отделни променливи за вход)
@@ -94,13 +95,21 @@ function App() {
   // Проверяваме дали има запазен email в localStorage при зареждане
   const [view, setView] = useState<View>(() => {
     const savedEmail = localStorage.getItem("loggedInEmail");
-    return savedEmail ? "all" : "login";
+    return savedEmail ? "all" : "home";
   });
   
-  // При отваряне на формата за създаване - попълни email от логнатия потребител
+  const [contactPhonePrefilled, setContactPhonePrefilled] = useState(false);
+  // При отваряне на формата за създаване - попълни email и телефон от логнатия потребител / запомнени данни
   useEffect(() => {
     if (showCreateForm && loggedInEmail) {
       setNewItemContactEmail(loggedInEmail);
+      const savedPhone = localStorage.getItem("userContactPhone");
+      if (savedPhone) {
+        setNewItemContactPhone(savedPhone);
+        setContactPhonePrefilled(true);
+      } else {
+        setContactPhonePrefilled(false);
+      }
     }
   }, [showCreateForm, loggedInEmail]);
   
@@ -149,11 +158,10 @@ function App() {
   };
 
   useEffect(() => {
-    // Зареждаме items само ако е логнат
-    if (loggedInEmail) {
+    if (loggedInEmail || view === "all") {
       loadItems();
     }
-  }, [loggedInEmail]);
+  }, [loggedInEmail, view]);
 
   // Изчистване на съобщения при смяна на страница
   useEffect(() => {
@@ -178,7 +186,7 @@ function App() {
   };
   useEffect(() => { warmBackend(); }, []);
   useEffect(() => {
-    if (view === "login" || view === "register") warmBackend();
+    if (view === "login" || view === "register" || view === "home") warmBackend();
   }, [view]);
 
   useEffect(() => {
@@ -843,6 +851,7 @@ function App() {
       setNewItemCategory("Други");
       setNewItemContactEmail("");
       setNewItemContactPhone("");
+      if (phoneTrimmed) localStorage.setItem("userContactPhone", phoneTrimmed);
       setNewItemPaymentMethod("cash_on_delivery");
       const fileToUpload = newItemFile;
       const shouldMakeVip = newItemIsVip;
@@ -1652,6 +1661,16 @@ function App() {
         handleLogout={handleLogout}
       />
 
+      {/* НАЧАЛНА СТРАНИЦА */}
+      {view === "home" && !loggedInEmail && (
+        <LandingPage
+          language={language}
+          onBrowseListings={() => setView("all")}
+          onLogin={() => setView("login")}
+          onRegister={() => setView("register")}
+        />
+      )}
+
       {/* LOGIN СТРАНИЦА */}
       {view === "login" && !loggedInEmail && (
         <LoginPage
@@ -1819,8 +1838,8 @@ function App() {
         />
       )}
 
-      {/* СПИСЪК С ОБЯВИ - само ако е логнат */}
-      {loggedInEmail && (view === "all" || view === "mine") && (
+      {/* СПИСЪК С ОБЯВИ - "all" за всички, "mine" само за логнати */}
+      {(view === "all" || (view === "mine" && loggedInEmail)) && (
         <section className="listings-section">
           <div className="listings-main">
             <div className="listings-header">
@@ -1844,6 +1863,7 @@ function App() {
               category={newItemCategory}
               contactEmail={newItemContactEmail}
               contactPhone={newItemContactPhone}
+              contactPhonePrefilled={contactPhonePrefilled}
               paymentMethod={newItemPaymentMethod}
               isVip={newItemIsVip}
               language={language}
@@ -1899,8 +1919,8 @@ function App() {
         </section>
       )}
 
-      {/* FALLBACK - ако нищо не се показва, покажи поне това */}
-      {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && view !== "vip" && (
+      {/* FALLBACK - ако нищо не се показва */}
+      {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && view !== "vip" && view !== "home" && (
         <div style={{ padding: "40px", textAlign: "center", background: "rgba(255, 255, 255, 0.95)", margin: "40px auto", maxWidth: "600px", borderRadius: "12px" }}>
           <h2>Добре дошли в Web Shop!</h2>
           <p>Моля, влезте в системата или се регистрирайте, за да продължите.</p>

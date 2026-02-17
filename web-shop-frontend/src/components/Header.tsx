@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { View } from "../types";
 import type { Language as LangType } from "../translations";
 import { translations } from "../translations";
@@ -27,6 +27,24 @@ export function Header({
   const t = translations[language];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const inMenu = menuRef.current?.contains(target);
+      const inUserMenu = userMenuRef.current?.contains(target);
+      const inMobileBtn = mobileMenuBtnRef.current?.contains(target);
+      if (!inMenu && !inUserMenu && !inMobileBtn) {
+        setIsMenuOpen(false);
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleViewChange = (newView: View) => {
     setView(newView);
@@ -36,35 +54,44 @@ export function Header({
   };
 
   return (
-    <>
-      <div className="app-topbar">
-        <div className="app-topbar-left">
-          <span className="logo-icon">🛍️</span>
-          <span>Web Shop</span>
-        </div>
-        <div className="app-topbar-right">
-          <select
-            className="language-selector"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as LangType)}
+    <header className="app-header">
+      <div className="app-header-content">
+        <div className="app-header-left">
+          <h1
+            className="app-title logo-clickable"
+            onClick={() => handleViewChange(loggedInEmail ? "all" : "home")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && handleViewChange(loggedInEmail ? "all" : "home")}
           >
-            <option value="bg">🇧🇬 БГ</option>
-            <option value="en">🇬🇧 EN</option>
-            <option value="ru">🇷🇺 RU</option>
-          </select>
+            <span className="logo-icon-large">🛍️</span>
+            Web Shop
+          </h1>
         </div>
-      </div>
-      <header className="app-header">
-        <div className="app-header-content">
-          <div className="app-header-left">
-            <h1 className="app-title">
-              <span className="logo-icon-large">🛍️</span>
-              Web Shop
-            </h1>
-          </div>
-          
+        
+        <div className="app-header-right">
           {/* Desktop Navigation */}
           <nav className="app-nav desktop-nav">
+            {!loggedInEmail && (
+              <>
+                <button
+                  type="button"
+                  className={`nav-btn ${view === "home" ? "active" : ""}`}
+                  onClick={() => handleViewChange("home")}
+                >
+                  <span className="nav-icon">🏠</span>
+                  {t.navHome || "Начало"}
+                </button>
+                <button
+                  type="button"
+                  className={`nav-btn ${view === "all" ? "active" : ""}`}
+                  onClick={() => handleViewChange("all")}
+                >
+                  <span className="nav-icon">📋</span>
+                  {t.navListings}
+                </button>
+              </>
+            )}
             {loggedInEmail && (
               <>
                 <button
@@ -91,11 +118,14 @@ export function Header({
                   <span className="nav-icon">⭐</span>
                   {t.navFavorites}
                 </button>
-                <div className="dropdown-container">
+                <div className="dropdown-container" ref={menuRef}>
                   <button
                     type="button"
                     className={`nav-btn dropdown-toggle ${["messages", "orders", "vip"].includes(view) ? "active" : ""}`}
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    onClick={() => {
+                      setIsMenuOpen((prev) => !prev);
+                      setIsUserMenuOpen(false);
+                    }}
                   >
                     <span className="nav-icon">⚙️</span>
                     {t.navMore || "Още"}
@@ -135,11 +165,14 @@ export function Header({
             
             {/* User Menu */}
             {loggedInEmail ? (
-              <div className="dropdown-container user-menu">
+              <div className="dropdown-container user-menu" ref={userMenuRef}>
                 <button
                   type="button"
                   className="nav-btn user-menu-btn"
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  onClick={() => {
+                    setIsUserMenuOpen((prev) => !prev);
+                    setIsMenuOpen(false);
+                  }}
                 >
                   <span className="nav-icon">👤</span>
                   {loggedInEmail.split("@")[0]}
@@ -174,10 +207,20 @@ export function Header({
                 {t.navLogin}
               </button>
             )}
+            <select
+              className="language-selector"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as LangType)}
+            >
+              <option value="bg">🇧🇬 БГ</option>
+              <option value="en">🇬🇧 EN</option>
+              <option value="ru">🇷🇺 RU</option>
+            </select>
           </nav>
 
           {/* Mobile Menu Button */}
           <button
+            ref={mobileMenuBtnRef}
             className="mobile-menu-btn"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
@@ -189,6 +232,26 @@ export function Header({
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <nav className="app-nav mobile-nav">
+            {!loggedInEmail && (
+              <>
+                <button
+                  type="button"
+                  className={`nav-btn mobile-nav-btn ${view === "home" ? "active" : ""}`}
+                  onClick={() => handleViewChange("home")}
+                >
+                  <span className="nav-icon">🏠</span>
+                  {t.navHome || "Начало"}
+                </button>
+                <button
+                  type="button"
+                  className={`nav-btn mobile-nav-btn ${view === "all" ? "active" : ""}`}
+                  onClick={() => handleViewChange("all")}
+                >
+                  <span className="nav-icon">📋</span>
+                  {t.navListings}
+                </button>
+              </>
+            )}
             {loggedInEmail && (
               <>
                 <button
@@ -252,6 +315,17 @@ export function Header({
                 </button>
               </>
             )}
+            <div className="mobile-nav-language">
+              <select
+                className="language-selector mobile"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as LangType)}
+              >
+                <option value="bg">🇧🇬 БГ</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="ru">🇷🇺 RU</option>
+              </select>
+            </div>
             {!loggedInEmail && (
               <button
                 type="button"
@@ -264,7 +338,7 @@ export function Header({
             )}
           </nav>
         )}
-      </header>
-    </>
+      </div>
+    </header>
   );
 }

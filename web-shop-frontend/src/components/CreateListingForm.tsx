@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import { CATEGORIES } from "../types";
 import { translations, type Language } from "../translations";
@@ -10,6 +11,7 @@ type CreateListingFormProps = {
   category: string;
   contactEmail: string;
   contactPhone: string;
+  contactPhonePrefilled?: boolean;
   paymentMethod: string;
   isVip: boolean;
   language: Language;
@@ -36,6 +38,7 @@ export function CreateListingForm({
   category,
   contactEmail,
   contactPhone,
+  contactPhonePrefilled,
   paymentMethod,
   isVip,
   language,
@@ -55,6 +58,17 @@ export function CreateListingForm({
 }: CreateListingFormProps) {
   if (!show) return null;
   const t = translations[language] || translations["bg"];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPreviewUrl(null);
+  }, [file]);
 
   return (
     <form onSubmit={onSubmit} className="create-listing-form">
@@ -128,6 +142,11 @@ export function CreateListingForm({
             placeholder="+359 888 123 456"
             disabled={isCreating}
           />
+          {contactPhonePrefilled && (
+            <p style={{ fontSize: "11px", color: "var(--success)", marginTop: "4px", marginBottom: 0 }}>
+              {language === "bg" ? "Запомнено от предишна обява" : language === "en" ? "Saved from previous listing" : "Сохранено из предыдущего объявления"}
+            </p>
+          )}
         </div>
       </div>
       <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px", fontStyle: "italic" }}>
@@ -154,15 +173,42 @@ export function CreateListingForm({
       </div>
       <div className="form-group">
         <label>{t.image} *</label>
-        <input type="file" accept="image/*" onChange={onFileChange} required disabled={isCreating} />
-        {file && (
-          <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-            {t.selected}: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-          </p>
-        )}
-        <p style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px", marginBottom: 0 }}>
-          Максимален размер: 20MB
-        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={onFileChange}
+          required
+          disabled={isCreating}
+          className="file-input-hidden"
+        />
+        <div
+          className={`file-picker ${file ? "file-picker-has-file" : ""} ${isCreating ? "file-picker-disabled" : ""}`}
+          onClick={() => !isCreating && fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && !isCreating && fileInputRef.current?.click()}
+          aria-label={t.chooseImage}
+        >
+          {file && previewUrl ? (
+            <>
+              <div className="file-picker-preview">
+                <img src={previewUrl} alt="" />
+              </div>
+              <div className="file-picker-info">
+                <span className="file-picker-name">{file.name}</span>
+                <span className="file-picker-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                <span className="file-picker-action">{t.changeImage}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="file-picker-icon">🖼️</span>
+              <span className="file-picker-text">{t.chooseImage}</span>
+            </>
+          )}
+        </div>
+        <p className="file-picker-hint">{t.maxFileSize}</p>
       </div>
       <button type="submit" className={`btn-primary ${isCreating ? "btn-loading" : ""}`} disabled={isCreating}>
         {isCreating ? (

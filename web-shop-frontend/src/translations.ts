@@ -3,6 +3,7 @@ export type Language = "bg" | "en" | "ru";
 export const translations = {
   bg: {
     // Navigation
+    navHome: "Начало",
     navListings: "Обяви",
     navMyListings: "Моите обяви",
     navFavorites: "Любими",
@@ -63,7 +64,10 @@ export const translations = {
     contactPhone: "Контакт Телефон:",
     contactRequired: "* Трябва да посочите поне email или телефон за контакт",
     image: "Снимка:",
+    chooseImage: "Изберете снимка",
+    changeImage: "Смени снимка",
     selected: "Избрана:",
+    maxFileSize: "Макс. 20MB",
     submitListing: "Създай обява",
     noListings: "Няма обяви.",
     loginToSeeListings: "За да виждате \"моите обяви\", първо влезте в системата.",
@@ -181,6 +185,7 @@ export const translations = {
   },
   en: {
     // Navigation
+    navHome: "Home",
     navListings: "Listings",
     navMyListings: "My Listings",
     navFavorites: "Favorites",
@@ -241,7 +246,10 @@ export const translations = {
     contactPhone: "Contact Phone:",
     contactRequired: "* You must provide at least email or phone for contact",
     image: "Image:",
+    chooseImage: "Choose image",
+    changeImage: "Change image",
     selected: "Selected:",
+    maxFileSize: "Max 20MB",
     submitListing: "Create Listing",
     noListings: "No listings.",
     loginToSeeListings: "To see \"my listings\", please log in first.",
@@ -359,6 +367,7 @@ export const translations = {
   },
   ru: {
     // Navigation
+    navHome: "Главная",
     navListings: "Объявления",
     navMyListings: "Мои объявления",
     navFavorites: "Избранное",
@@ -419,7 +428,10 @@ export const translations = {
     contactPhone: "Контактный телефон:",
     contactRequired: "* Вы должны указать хотя бы email или телефон для связи",
     image: "Изображение:",
+    chooseImage: "Выберите изображение",
+    changeImage: "Изменить изображение",
     selected: "Выбрано:",
+    maxFileSize: "Макс. 20MB",
     submitListing: "Создать объявление",
     noListings: "Нет объявлений.",
     loginToSeeListings: "Чтобы увидеть \"мои объявления\", сначала войдите в систему.",
