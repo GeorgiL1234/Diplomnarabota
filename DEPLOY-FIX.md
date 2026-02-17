@@ -30,11 +30,12 @@ git push origin main
 - Или изчакай автоматичния deploy след push (1–2 мин)
 - Провери Deployments – последният трябва да е "Ready"
 
-### 3. Render (Backend)
+### 3. Render (Backend) – **ВАЖНО**
 - Отиди на https://dashboard.render.com
 - Намери webshop-e6dx (или твоя backend)
-- Ако има "Manual Deploy" – натисни "Deploy latest commit"
-- Или изчакай автоматичния deploy след push (3–5 мин)
+- **Manual Deploy:** Натисни "Manual Deploy" → "Deploy latest commit"
+- Изчакай 3–5 мин за build
+- **Проверка:** Отвори `https://webshop-e6dx.onrender.com/health/build` – трябва да виждаш `{"build":"image-in-create-v2"}`
 
 ### 4. Hard refresh в браузъра
 - **Windows:** `Ctrl + Shift + R` или `Ctrl + F5`

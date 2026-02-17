@@ -1,5 +1,6 @@
 package com.example.webshop.controllers;
 
+import com.example.webshop.dto.ItemListDto;
 import com.example.webshop.models.Item;
 import com.example.webshop.services.ItemService;
 import org.slf4j.Logger;
@@ -72,6 +73,12 @@ public class ItemController {
     @GetMapping
     public List<Item> getAll() {
         return itemService.getAll();
+    }
+
+    /** Списък БЕЗ imageUrl – за list view (избягва 500 на Render от големи base64) */
+    @GetMapping("/list")
+    public List<ItemListDto> getList() {
+        return itemService.getAllForList();
     }
 
     @GetMapping("/{id:[0-9]+}")

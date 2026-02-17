@@ -133,7 +133,7 @@ function App() {
 
   // зареждане на продуктите
   const loadItems = () => {
-    fetch(`${API_BASE}/items`)
+    fetch(`${API_BASE}/items/list`)
       .then((res) => {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
@@ -179,7 +179,7 @@ function App() {
   const warmBackend = () => {
     fetch(`${API_BASE}/items/ping`, { method: "GET" }).catch(() => 
       fetch(`${API_BASE}/actuator/health`, { method: "GET" }).catch(() => 
-        fetch(`${API_BASE}/items`, { method: "GET" }).catch(() => {})
+        fetch(`${API_BASE}/items/list`, { method: "GET" }).catch(() => {})
       )
     );
   };
@@ -898,14 +898,15 @@ function App() {
   // избиране на продукт + зареждане на ревюта и съобщения
   const openItem = async (item: Item | number) => {
     try {
-      // Ако е подадено ID вместо обект, зареди обявата от сървъра
+      // Ако е ID или item от list (без imageUrl), зареди пълния item от сървъра
       let itemObj: Item;
-      if (typeof item === 'number') {
-        const res = await fetch(`${API_BASE}/items/${item}`);
+      const idToFetch = typeof item === 'number' ? item : (item.imageUrl == null ? item.id : null);
+      if (idToFetch != null) {
+        const res = await fetch(`${API_BASE}/items/${idToFetch}`);
         if (!res.ok) throw new Error("Failed to load item");
         itemObj = await res.json();
       } else {
-        itemObj = item;
+        itemObj = item as Item;
       }
       
       // Валидирай данните преди да ги използваш

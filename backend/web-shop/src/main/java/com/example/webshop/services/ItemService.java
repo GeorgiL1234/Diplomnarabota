@@ -1,5 +1,6 @@
 package com.example.webshop.services;
 
+import com.example.webshop.dto.ItemListDto;
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
 import org.springframework.stereotype.Service;
@@ -28,14 +29,24 @@ public class ItemService {
     }
 
     public List<Item> getAll() {
-        // Сортираме обявите: VIP първо, след това останалите
+        return getAllSorted();
+    }
+
+    /** Списък БЕЗ imageUrl – за list view (избягваме 500 от големи base64 в response) */
+    public List<ItemListDto> getAllForList() {
+        return getAllSorted().stream()
+                .map(ItemListDto::from)
+                .toList();
+    }
+
+    private List<Item> getAllSorted() {
         List<Item> allItems = itemRepository.findAll();
         allItems.sort((a, b) -> {
             boolean aVip = a.getIsVip() != null && a.getIsVip();
             boolean bVip = b.getIsVip() != null && b.getIsVip();
-            if (aVip && !bVip) return -1; // a е VIP, b не е - a първо
-            if (!aVip && bVip) return 1;  // b е VIP, a не е - b първо
-            return 0; // И двете са VIP или и двете не са - запазваме оригиналния ред
+            if (aVip && !bVip) return -1;
+            if (!aVip && bVip) return 1;
+            return 0;
         });
         return allItems;
     }
