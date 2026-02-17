@@ -14,7 +14,9 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 });
 
-console.log('Starting application...');
+// Версия с image-in-create (снимка в JSON body) – ако виждаш тази грешка, деплойът не е обновен
+(window as any).__WEB_SHOP_BUILD__ = 'image-in-create-v2';
+console.log('Starting application...', (window as any).__WEB_SHOP_BUILD__);
 console.log('API_BASE:', import.meta.env.VITE_API_BASE_URL || 'https://webshop-e6dx.onrender.com');
 console.log('Environment:', import.meta.env.MODE);
 console.log('Vite env:', import.meta.env);

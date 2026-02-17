@@ -42,7 +42,7 @@ export const translations = {
     errorImageRequired: "Моля, изберете снимка за обявата",
     successListingCreated: "Обявата е създадена успешно!",
     successListingImageUploaded: "Обявата и снимката са качени успешно!",
-    errorImageNotUploaded: "Обявата е създадена, но снимката не беше качена:",
+    errorImageNotUploaded: "Обявата е създадена, но снимката не беше качена",
     successImageUploaded: "Снимката е качена успешно",
     successReviewAdded: "Ревюто е добавено",
     
@@ -224,7 +224,7 @@ export const translations = {
     errorImageRequired: "Please select an image for the listing",
     successListingCreated: "Listing created successfully!",
     successListingImageUploaded: "Listing and image uploaded successfully!",
-    errorImageNotUploaded: "Listing created, but image was not uploaded:",
+    errorImageNotUploaded: "Listing created, but image was not uploaded",
     successImageUploaded: "Image uploaded successfully",
     successReviewAdded: "Review added",
     
@@ -406,7 +406,7 @@ export const translations = {
     errorImageRequired: "Пожалуйста, выберите изображение для объявления",
     successListingCreated: "Объявление успешно создано!",
     successListingImageUploaded: "Объявление и изображение успешно загружены!",
-    errorImageNotUploaded: "Объявление создано, но изображение не было загружено:",
+    errorImageNotUploaded: "Объявление создано, но изображение не было загружено",
     successImageUploaded: "Изображение успешно загружено",
     successReviewAdded: "Отзыв добавлен",
     

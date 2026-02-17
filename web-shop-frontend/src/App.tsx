@@ -63,7 +63,6 @@ function App() {
   const [newItemIsVip, setNewItemIsVip] = useState(false);
   const [newItemFile, setNewItemFile] = useState<File | null>(null);
   const [isCreatingListing, setIsCreatingListing] = useState(false);
-  const [pendingImageUpload, setPendingImageUpload] = useState<{file: File, itemId: number} | null>(null);
   
   // VIP Payment state
   const [showVipPayment, setShowVipPayment] = useState(false);
@@ -587,13 +586,6 @@ function App() {
       setPendingVipItemId(null);
       setError(null); // Изчисти грешките
       
-      // Ако има pending image upload, качи я сега
-      if (pendingImageUpload && pendingImageUpload.itemId === completedItemId) {
-        console.log('Uploading pending image after VIP payment');
-        uploadImageForItem(pendingImageUpload.file, pendingImageUpload.itemId, false);
-        setPendingImageUpload(null);
-      }
-      
       // Презареди items и selectedItem
       try {
         await loadItems();
@@ -620,128 +612,6 @@ function App() {
     setShowVipPayment(false);
     setPendingVipItemId(null);
     setMessage(t.successListingCreated);
-    // Ако има pending image upload, качи я сега
-    if (pendingImageUpload) {
-      uploadImageForItem(pendingImageUpload.file, pendingImageUpload.itemId, false);
-      setPendingImageUpload(null);
-    }
-  };
-
-  // Функция за качване на снимка към обява
-  const uploadImageForItem = async (file: File, itemId: number, suppressErrors: boolean = false) => {
-    if (!loggedInEmail) return;
-    
-    try {
-      console.log('Uploading image for item:', itemId);
-      console.log('File:', file.name, file.size, 'bytes');
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("ownerEmail", loggedInEmail);
-      console.log('Sending upload request to:', `${API_BASE}/upload/${itemId}`);
-      
-      // Добавяме timeout от 30 секунди за качване на снимка
-      const uploadController = new AbortController();
-      const uploadTimeoutId = setTimeout(() => uploadController.abort(), 30000);
-      
-      const uploadRes = await fetch(`${API_BASE}/upload/${itemId}`, {
-        method: "POST",
-        body: formData,
-        signal: uploadController.signal,
-      });
-      
-      clearTimeout(uploadTimeoutId);
-      
-      console.log('Upload response status:', uploadRes.status, uploadRes.statusText);
-      
-      if (uploadRes.ok) {
-        const responseText = await uploadRes.text();
-        console.log('Upload response:', responseText);
-        
-        let isSuccess = false;
-        try {
-          const responseJson = JSON.parse(responseText);
-          isSuccess = responseJson.status === "success" || responseJson.message?.includes("success");
-        } catch {
-          isSuccess = responseText.includes("success") || responseText.includes("UPLOAD_OK");
-        }
-        
-        if (isSuccess) {
-          if (!suppressErrors && !showVipPayment) {
-            setMessage(t.successListingImageUploaded);
-          }
-          // Презареди items и обнови selectedItem
-          setTimeout(() => {
-            loadItems();
-            if (itemId) {
-              fetch(`${API_BASE}/items/${itemId}`)
-                .then((res) => res.json())
-                .then((updated) => setSelectedItem(updated))
-                .catch((err) => console.error("Failed to reload item:", err));
-            }
-          }, 500);
-        } else {
-          throw new Error(responseText || "Unknown upload error");
-        }
-      } else {
-        const errorText = await uploadRes.text();
-        console.error('Upload failed:', uploadRes.status, errorText);
-        
-        let errorMessage = errorText;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorJson.message || errorText;
-        } catch {
-          errorMessage = errorText;
-        }
-        
-        // Покажи грешката само ако не сме в VIP payment модал и не suppressErrors
-        if (!suppressErrors && !showVipPayment) {
-          if (uploadRes.status === 413 || uploadRes.status === 413 || errorMessage.toLowerCase().includes('too large') || errorMessage.toLowerCase().includes('прекалено голям')) {
-            setError(language === "bg" 
-              ? "Обявата е създадена, но снимката е твърде голяма! Моля, изберете снимка под 3MB." 
-              : language === "en" 
-              ? "Listing created, but image is too large! Please select an image under 3MB."
-              : "Объявление создано, но изображение слишком большое! Пожалуйста, выберите изображение менее 3 МБ.");
-          } else {
-            const friendlyMessage = language === "bg"
-              ? `Обявата е създадена, но снимката не беше качена: ${errorMessage}`
-              : language === "en"
-              ? `Listing created, but image was not uploaded: ${errorMessage}`
-              : `Объявление создано, но изображение не загружено: ${errorMessage}`;
-            setError(friendlyMessage);
-          }
-        } else {
-          // Ако сме в VIP модал или suppressErrors, само логваме
-          console.warn('Image upload failed (suppressed):', errorMessage);
-        }
-        throw new Error(errorMessage);
-      }
-    } catch (uploadErr: any) {
-      console.error('Upload exception:', uploadErr);
-      
-      let errorMessage = uploadErr.message || String(uploadErr);
-      
-      if (uploadErr.name === 'AbortError') {
-        errorMessage = language === "bg" 
-          ? "Качването на снимката отне твърде много време. Моля, опитайте отново или изберете по-малка снимка." 
-          : language === "en" 
-          ? "Image upload took too long. Please try again or select a smaller image."
-          : "Загрузка изображения заняла слишком много времени. Пожалуйста, попробуйте снова или выберите меньшее изображение.";
-      } else if (errorMessage.includes('Internal Server Error') || errorMessage.includes('500')) {
-        errorMessage = language === "bg" 
-          ? "Грешка на сървъра при качване на снимката. Моля, опитайте отново или изберете друга снимка." 
-          : language === "en" 
-          ? "Server error uploading image. Please try again or select a different image."
-          : "Ошибка сервера при загрузке изображения. Пожалуйста, попробуйте снова или выберите другое изображение.";
-      }
-      
-      // Покажи грешката само ако не сме в VIP payment модал и не suppressErrors
-      if (!suppressErrors && !showVipPayment) {
-        setError(`${t.errorImageNotUploaded}: ${errorMessage}`);
-      } else {
-        console.warn('Image upload error (suppressed):', errorMessage);
-      }
-    }
   };
 
   // създаване на обява
@@ -766,12 +636,14 @@ function App() {
     const phoneTrimmed = newItemContactPhone.trim();
     if (!emailTrimmed && !phoneTrimmed) {
       setError(t.errorContactRequired);
+      setIsCreatingListing(false);
       return;
     }
     
     // Валидация: снимката е задължителна
     if (!newItemFile) {
       setError(t.errorImageRequired);
+      setIsCreatingListing(false);
       return;
     }
     
@@ -779,21 +651,25 @@ function App() {
     const priceValue = parseFloat(newItemPrice);
     if (isNaN(priceValue) || priceValue <= 0) {
       setError(language === "bg" ? "Моля, въведете валидна цена (по-голяма от 0)" : language === "en" ? "Please enter a valid price (greater than 0)" : "Пожалуйста, введите действительную цену (больше 0)");
+      setIsCreatingListing(false);
       return;
     }
     
     // Валидация: заглавието и описанието не трябва да са празни
     if (!newItemTitle.trim()) {
       setError(language === "bg" ? "Моля, въведете заглавие" : language === "en" ? "Please enter a title" : "Пожалуйста, введите заголовок");
+      setIsCreatingListing(false);
       return;
     }
     
     if (!newItemDescription.trim()) {
       setError(language === "bg" ? "Моля, въведете описание" : language === "en" ? "Please enter a description" : "Пожалуйста, введите описание");
+      setIsCreatingListing(false);
       return;
     }
     
     try {
+      console.log("CREATE-WITH-IMAGE-BASE64-v2"); // Ако виждаш това в console, имаш новата версия
       console.log("Creating listing:", {
         title: newItemTitle,
         description: newItemDescription,
@@ -804,6 +680,15 @@ function App() {
         paymentMethod: newItemPaymentMethod,
         isVip: newItemIsVip,
       });
+      
+      // Конвертирай снимката в base64 и включи в create request (избягваме отделен upload endpoint)
+      // Компресирай допълнително до ~0.5MB за сигурност при лимити (base64 ≈ +33% размер)
+      setMessage(language === "bg" ? "Подготвяне на снимката..." : "Preparing image...");
+      const fileToSend = newItemFile.size > 500 * 1024
+        ? await compressImage(newItemFile, 0.5)
+        : newItemFile;
+      const imageUrl = await fileToBase64DataUri(fileToSend);
+      setMessage(null);
       
       // Добавяме timeout от 15 секунди за създаване на обява
       const controller = new AbortController();
@@ -822,6 +707,7 @@ function App() {
           contactPhone: phoneTrimmed || null,
           paymentMethod: newItemPaymentMethod || null,
           isVip: false, // Винаги създаваме като не-VIP първо, после активираме ако е платено
+          imageUrl,
         }),
         signal: controller.signal,
       });
@@ -832,13 +718,20 @@ function App() {
       
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Create listing error:", errorText);
-        // Опитай се да парсне JSON грешката ако е възможно
+        console.error("Create listing error:", res.status, errorText);
+        if (res.status === 413) {
+          throw new Error(language === "bg"
+            ? "Снимката е твърде голяма. Моля, изберете по-малка снимка (под 1MB)."
+            : language === "en"
+            ? "Image is too large. Please select a smaller image (under 1MB)."
+            : "Изображение слишком большое. Выберите меньшее изображение (менее 1 МБ).");
+        }
         try {
           const errorJson = JSON.parse(errorText);
           throw new Error(errorJson.error || errorJson.message || t.errorCreateListing);
-        } catch {
-          throw new Error(errorText || t.errorCreateListing);
+        } catch (e) {
+          const msg = (e instanceof Error && e.message) ? e.message : (errorText || t.errorCreateListing);
+          throw new Error(msg);
         }
       }
       
@@ -853,7 +746,6 @@ function App() {
       setNewItemContactPhone("");
       if (phoneTrimmed) localStorage.setItem("userContactPhone", phoneTrimmed);
       setNewItemPaymentMethod("cash_on_delivery");
-      const fileToUpload = newItemFile;
       const shouldMakeVip = newItemIsVip;
       setNewItemIsVip(false);
       setNewItemFile(null);
@@ -873,22 +765,27 @@ function App() {
         setPendingVipItemId(createdItem.id);
         setShowVipPayment(true);
       }
-      
-      // Ако има избрана снимка, качи я автоматично (асинхронно, без да блокира UI)
-      // Ако е избрано VIP, запази снимката за качване след плащането
-      if (fileToUpload && createdItem.id) {
-        if (shouldMakeVip) {
-          // Ако е VIP, запази снимката за качване след успешно плащане
-          setPendingImageUpload({ file: fileToUpload, itemId: createdItem.id });
-          console.log('VIP selected - image upload will happen after payment');
-        } else {
-          // Ако не е VIP, качи снимката веднага
-          uploadImageForItem(fileToUpload, createdItem.id, false);
-        }
-      }
+      // Снимката вече е включена в create request (imageUrl base64)
     } catch (err) {
+      setMessage(null);
       setError(String(err));
+    } finally {
+      setIsCreatingListing(false);
     }
+  };
+
+  // Конвертира File в base64 data URI - за включване в create request (избягваме отделен upload)
+  const fileToBase64DataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        if (result) resolve(result);
+        else reject(new Error("Failed to read file"));
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
   };
 
   // Функция за компресия на снимка - по-агресивна за Render.com (ограничена памет)

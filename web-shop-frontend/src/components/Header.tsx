@@ -66,6 +66,7 @@ export function Header({
           >
             <span className="logo-icon-large">🛍️</span>
             Web Shop
+            <span style={{ fontSize: "0.5em", opacity: 0.7, marginLeft: "4px" }} title="Версия с снимка в create request">v2</span>
           </h1>
         </div>
         
