@@ -36,7 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/vip-payment/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/health", "/auth/health").permitAll()
+                        .requestMatchers("/health", "/health/build", "/auth/health").permitAll()
                         .anyRequest().permitAll())
                 
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))

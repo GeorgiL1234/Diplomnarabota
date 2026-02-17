@@ -682,10 +682,10 @@ function App() {
       });
       
       // Конвертирай снимката в base64 и включи в create request (избягваме отделен upload endpoint)
-      // Компресирай допълнително до ~0.5MB за сигурност при лимити (base64 ≈ +33% размер)
+      // Компресирай до ~0.3MB за Render.com (512MB RAM) – base64 ≈ +33% размер
       setMessage(language === "bg" ? "Подготвяне на снимката..." : "Preparing image...");
-      const fileToSend = newItemFile.size > 500 * 1024
-        ? await compressImage(newItemFile, 0.5)
+      const fileToSend = newItemFile.size > 300 * 1024
+        ? await compressImage(newItemFile, 0.3)
         : newItemFile;
       const imageUrl = await fileToBase64DataUri(fileToSend);
       setMessage(null);
@@ -721,18 +721,19 @@ function App() {
         console.error("Create listing error:", res.status, errorText);
         if (res.status === 413) {
           throw new Error(language === "bg"
-            ? "Снимката е твърде голяма. Моля, изберете по-малка снимка (под 1MB)."
+            ? "Снимката е твърде голяма. Моля, изберете по-малка снимка (под 300KB)."
             : language === "en"
-            ? "Image is too large. Please select a smaller image (under 1MB)."
-            : "Изображение слишком большое. Выберите меньшее изображение (менее 1 МБ).");
+            ? "Image is too large. Please select a smaller image (under 300KB)."
+            : "Изображение слишком большое. Выберите меньшее изображение (менее 300 КБ).");
         }
+        let errMsg = t.errorCreateListing;
         try {
           const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.error || errorJson.message || t.errorCreateListing);
-        } catch (e) {
-          const msg = (e instanceof Error && e.message) ? e.message : (errorText || t.errorCreateListing);
-          throw new Error(msg);
+          errMsg = errorJson.error || errorJson.message || errMsg;
+        } catch {
+          if (res.status === 500 && errorText) errMsg = errorText;
         }
+        throw new Error(errMsg);
       }
       
       const createdItem = await res.json();
