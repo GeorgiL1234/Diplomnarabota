@@ -7,9 +7,9 @@
 ## 1. Render (Backend) – webshop-e6dx.onrender.com
 
 ### Проверка дали backend-ът работи
-1. **https://webshop-e6dx.onrender.com/items/ping** → трябва `OK` (backend-ът е жив)
-2. **https://webshop-e6dx.onrender.com/items/version** → трябва `{"build":"v3-feb2026"}` (backend-ът е обновен)  
-Ако `/items/version` дава 404 → backend-ът не е deploy-нат с последния код. Manual Deploy на Render.
+1. **https://webshop-e6dx.onrender.com/status** → трябва `OK` (backend-ът е жив)
+2. **https://webshop-e6dx.onrender.com/status/version** → трябва `{"build":"v3-feb2026"}` (backend-ът е обновен)  
+Ако получаваш 400/404 → backend-ът не е deploy-нат с последния код или не е свързан с GitHub. Manual Deploy на Render.
 
 ### Ако backend-ът не е свързан с GitHub
 1. Render Dashboard → **Dashboard** → твоето backend приложение
