@@ -15,6 +15,7 @@ public class ItemListDto {
     private String contactPhone;
     private Boolean isVip;
     private String paymentMethod;
+    private String imageUrl;
 
     public ItemListDto() {}
 
@@ -25,6 +26,7 @@ public class ItemListDto {
         dto.setDescription(item.getDescription());
         dto.setPrice(item.getPrice());
         dto.setOwnerEmail(item.getOwnerEmail());
+        dto.setImageUrl(item.getImageUrl());
         dto.setCategory(item.getCategory());
         dto.setContactEmail(item.getContactEmail());
         dto.setContactPhone(item.getContactPhone());
@@ -53,4 +55,6 @@ public class ItemListDto {
     public void setIsVip(Boolean isVip) { this.isVip = isVip; }
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

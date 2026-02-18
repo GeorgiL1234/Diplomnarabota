@@ -18,10 +18,12 @@ export function ItemList({ items, view, loggedInEmail, selectedCategory, languag
     if (selectedCategory !== "Всички") {
       if (!it.category || it.category !== selectedCategory) return false;
     }
-    // филтър по "моите обяви"
+    // филтър по "моите обяви" – сравнение с trim и case-insensitive
     if (view === "mine") {
       if (!loggedInEmail) return false;
-      return it.ownerEmail === loggedInEmail;
+      const a = (it.ownerEmail ?? "").trim().toLowerCase();
+      const b = (loggedInEmail ?? "").trim().toLowerCase();
+      return a.length > 0 && a === b;
     }
     return true;
   });

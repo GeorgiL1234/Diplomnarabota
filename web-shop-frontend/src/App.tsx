@@ -146,7 +146,7 @@ function App() {
         return res.json();
       });
 
-    // Локален backend: използваме /items (с imageUrl). Render: /items/list (без imageUrl, избягва 500)
+    // Локален backend: /items (пълен). Render: /items/list (с imageUrl в ItemListDto)
     const useFullItems = API_BASE.includes("localhost");
     const listUrl = useFullItems ? `${API_BASE}/items` : `${API_BASE}/items/list`;
 
