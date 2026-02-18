@@ -7,9 +7,9 @@
 ## 1. Render (Backend) – webshop-e6dx.onrender.com
 
 ### Проверка дали backend-ът работи
-1. **https://webshop-e6dx.onrender.com/status** → трябва `OK` (backend-ът е жив)
-2. **https://webshop-e6dx.onrender.com/status/version** → трябва `{"build":"v3-feb2026"}` (backend-ът е обновен)  
-Ако получаваш 404 → Build Command или Root Directory на Render са грешни. Виж по-долу.
+1. **https://webshop-e6dx.onrender.com/items/health-check** → трябва `OK` (използвай това вместо /items/ping)
+2. **https://webshop-e6dx.onrender.com/status** или **/items/version** → версия  
+Ако /items/ping дава 400 (MethodArgumentTypeMismatch "ping") → Spring съвпада с /{id}. Използвай /items/health-check.
 
 ### Ако backend-ът не е свързан с GitHub
 1. Render Dashboard → **Dashboard** → твоето backend приложение

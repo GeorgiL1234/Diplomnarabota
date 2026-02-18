@@ -76,13 +76,13 @@ public class ItemController {
         }
     }
 
-    /** Прост health check - ако /items работи, и това работи */
-    @GetMapping("/ping")
+    /** Health check – използвай /items/health-check (не /ping – конфликт с /{id}) */
+    @GetMapping({ "/ping", "/health-check" })
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("OK");
     }
 
-    /** Версия на backend – за проверка дали deploy-ът е обновен */
+    /** Версия на backend */
     @GetMapping("/version")
     public ResponseEntity<java.util.Map<String, String>> version() {
         return ResponseEntity.ok(java.util.Map.of("build", "v3-feb2026"));
