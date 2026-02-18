@@ -15,7 +15,7 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // Версия с image-in-create (снимка в JSON body) – ако виждаш тази грешка, деплойът не е обновен
-(window as any).__WEB_SHOP_BUILD__ = 'image-in-create-v2';
+(window as any).__WEB_SHOP_BUILD__ = 'v3-19feb2026';
 console.log('Starting application...', (window as any).__WEB_SHOP_BUILD__);
 console.log('API_BASE:', import.meta.env.VITE_API_BASE_URL || 'https://webshop-e6dx.onrender.com');
 console.log('Environment:', import.meta.env.MODE);
