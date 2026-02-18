@@ -133,13 +133,21 @@ function App() {
 
   // зареждане на продуктите
   const loadItems = () => {
-    fetch(`${API_BASE}/items/list`)
-      .then((res) => {
-        if (!res.ok) throw new Error("HTTP " + res.status);
+    const tryFetch = (url: string) =>
+      fetch(url).then((res) => {
+        if (!res.ok) throw { status: res.status };
         return res.json();
+      });
+
+    tryFetch(`${API_BASE}/items/list`)
+      .catch((err) => {
+        // Fallback: ако /list връща 400/404 (backend не е обновен), опитай /items
+        if (err?.status === 400 || err?.status === 404) {
+          return tryFetch(`${API_BASE}/items`);
+        }
+        throw new Error("HTTP " + (err?.status || "?"));
       })
       .then((data) => {
-        // Сортираме обявите: VIP първо
         const sortedData = [...data].sort((a: Item, b: Item) => {
           const aVip = a.isVip === true;
           const bVip = b.isVip === true;
@@ -153,7 +161,7 @@ function App() {
           setSelectedItem(updated);
         }
       })
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(err?.message || String(err)));
   };
 
   useEffect(() => {
