@@ -691,6 +691,7 @@ function App() {
     
     try {
       let createdItem: Item;
+      let uploadFailed = false;
       const createPayload = {
         title: newItemTitle.trim(),
         description: newItemDescription.trim(),
@@ -703,47 +704,19 @@ function App() {
         isVip: false,
       };
       
-      // Опит 1: create със снимка (компресирана до 150KB)
-      setMessage(language === "bg" ? "Подготвяне на снимката..." : "Preparing image...");
-      const fileToSend = newItemFile.size > 150 * 1024
-        ? await compressImage(newItemFile, 0.15)
-        : newItemFile;
-      const imageAsBase64 = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result as string);
-        r.onerror = () => reject(r.error);
-        r.readAsDataURL(fileToSend);
-      });
+      // Create без снимка (избягва 500 на Render), после upload
       setMessage(language === "bg" ? "Създаване на обява..." : "Creating listing...");
-      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
       let res = await fetch(`${API_BASE}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ ...createPayload, imageUrl: imageAsBase64 }),
+        body: JSON.stringify({ ...createPayload, imageUrl: null }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
       
       if (res.ok) {
-        createdItem = await res.json() as Item;
-      } else if (res.status === 500) {
-        // Опит 2: create без снимка, после upload
-        setMessage(language === "bg" ? "Създаване на обява..." : "Creating listing...");
-        const ctrl2 = new AbortController();
-        const t2 = setTimeout(() => ctrl2.abort(), 90000);
-        res = await fetch(`${API_BASE}/items`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json; charset=UTF-8" },
-          body: JSON.stringify({ ...createPayload, imageUrl: null }),
-          signal: ctrl2.signal,
-        });
-        clearTimeout(t2);
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText || t.errorCreateListing);
-        }
         createdItem = await res.json() as Item;
       } else {
         const errorText = await res.text();
@@ -770,12 +743,12 @@ function App() {
         }).then((r) => r.json());
       }
       
-      // Ако все още няма снимка (fallback create), качваме чрез upload
-      if (!createdItem.imageUrl && createdItem.id && newItemFile) {
+      // Качване на снимката чрез upload (multipart, компресирана до 300KB)
+      if (createdItem.id && newItemFile) {
         setMessage(language === "bg" ? "Качване на снимката..." : "Uploading image...");
         const formData = new FormData();
-        const fileToUpload = newItemFile.size > 3 * 1024 * 1024
-          ? await compressImage(newItemFile, 2.5)
+        const fileToUpload = newItemFile.size > 300 * 1024
+          ? await compressImage(newItemFile, 0.3)
           : newItemFile;
         formData.append("file", fileToUpload);
         formData.append("ownerEmail", loggedInEmail!);
@@ -788,9 +761,14 @@ function App() {
             createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
               cache: "no-store",
             }).then((r) => r.json());
+          } else {
+            const errText = await uploadRes.text();
+            console.warn("Upload failed:", uploadRes.status, errText);
+            uploadFailed = true;
           }
-        } catch {
-          // Обявата е създадена, снимката не се качи
+        } catch (e) {
+          console.warn("Upload error:", e);
+          uploadFailed = true;
         }
         setMessage(null);
       }
@@ -826,7 +804,9 @@ function App() {
       setSelectedItem(createdItem);
       setReviews([]); // Празни ревюта, защото е нова обява
       setView("detail"); // Превключи към детайлен view
-      setMessage(t.successListingCreated);
+      setMessage(uploadFailed
+        ? (language === "bg" ? "Обявата е създадена, но снимката не се качи. Опитайте с по-малка снимка." : "Listing created, but image upload failed. Try a smaller image.")
+        : t.successListingCreated);
       
       // Ако е избрано VIP, покажи форма за плащане
       if (shouldMakeVip && createdItem.id) {
@@ -964,14 +944,24 @@ function App() {
       const id = typeof item === 'number' ? item : item.id;
       const res = await fetch(`${API_BASE}/items/${id}?t=${Date.now()}`);
       if (!res.ok) throw new Error("Failed to load item");
-      const itemObj: Item = await res.json();
+      let itemObj: Item = await res.json();
       
-      // Валидирай данните преди да ги използваш
+      // Ако няма imageUrl (response твърде голям или backend не го връща), опитай отделен endpoint
+      if ((!itemObj.imageUrl || itemObj.imageUrl.length < 10) && itemObj.id) {
+        try {
+          const imgRes = await fetch(`${API_BASE}/items/${itemObj.id}/image?t=${Date.now()}`);
+          if (imgRes.ok) {
+            const imgData = await imgRes.json();
+            if (imgData?.imageUrl) itemObj = { ...itemObj, imageUrl: imgData.imageUrl };
+          }
+        } catch {
+          // Игнорирай – ще покажем placeholder
+        }
+      }
+      
       if (!itemObj || !itemObj.id) {
         throw new Error("Invalid item data");
       }
-      
-      console.log("Opening item:", itemObj);
       
       // Изчисти състоянието първо
       setError(null);

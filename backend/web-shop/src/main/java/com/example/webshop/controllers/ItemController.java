@@ -106,6 +106,16 @@ public class ItemController {
         return itemService.getById(id);
     }
 
+    /** Отделен endpoint за снимка – ако GET /items/{id} е твърде голям */
+    @GetMapping("/{id:[0-9]+}/image")
+    public ResponseEntity<java.util.Map<String, String>> getImage(@PathVariable Long id) {
+        Item item = itemService.getById(id);
+        if (item.getImageUrl() == null || item.getImageUrl().isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(java.util.Map.of("imageUrl", item.getImageUrl()));
+    }
+
     @PutMapping("/{id:[0-9]+}")
     public Item update(
             @PathVariable Long id,
