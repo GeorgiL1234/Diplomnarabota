@@ -940,13 +940,32 @@ function App() {
   // избиране на продукт + зареждане на ревюта и съобщения
   const openItem = async (item: Item | number) => {
     try {
-      // Винаги зареждаме пълния item от сървъра – гарантира снимка и ownerEmail
       const id = typeof item === 'number' ? item : item.id;
-      const res = await fetch(`${API_BASE}/items/${id}?t=${Date.now()}`);
-      if (!res.ok) throw new Error("Failed to load item");
-      let itemObj: Item = await res.json();
+      const listItem = typeof item === 'object' ? item : null;
       
-      // Ако няма imageUrl (response твърде голям или backend не го връща), опитай отделен endpoint
+      let itemObj: Item | null = null;
+      try {
+        const res = await fetch(`${API_BASE}/items/${id}?t=${Date.now()}`);
+        if (!res.ok) throw new Error("Failed to load item");
+        const data = await res.json();
+        if (data && (data.id != null || data.id === 0)) {
+          itemObj = data;
+        }
+      } catch (e) {
+        console.warn("Fetch item failed:", e);
+      }
+      
+      if (!itemObj && listItem) {
+        itemObj = { ...listItem };
+      }
+      if (!itemObj) {
+        throw new Error("Invalid item data");
+      }
+      if (itemObj.id == null || itemObj.id === undefined) {
+        itemObj = { ...itemObj, id: Number(id) } as Item;
+      }
+      
+      // Ако няма imageUrl, опитай отделен endpoint
       if ((!itemObj.imageUrl || itemObj.imageUrl.length < 10) && itemObj.id) {
         try {
           const imgRes = await fetch(`${API_BASE}/items/${itemObj.id}/image?t=${Date.now()}`);
@@ -957,10 +976,6 @@ function App() {
         } catch {
           // Игнорирай – ще покажем placeholder
         }
-      }
-      
-      if (!itemObj || !itemObj.id) {
-        throw new Error("Invalid item data");
       }
       
       // Изчисти състоянието първо
