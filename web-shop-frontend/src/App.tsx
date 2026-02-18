@@ -146,14 +146,14 @@ function App() {
         return res.json();
       });
 
-    // Локален: /items (пълен). Render: /items/list (без imageUrl – снимката се зарежда при отваряне на детайл)
-    const useFullItems = API_BASE.includes("localhost");
-    const listUrl = useFullItems ? `${API_BASE}/items` : `${API_BASE}/items/list`;
+    // Опит за /items (пълен със снимки). При 500 fallback към /items/list
+    const listUrl = `${API_BASE}/items`;
+    const listUrlFallback = `${API_BASE}/items/list`;
 
     tryFetch(listUrl)
       .catch((err) => {
-        if (err?.status === 400 || err?.status === 404) {
-          return tryFetch(`${API_BASE}/items`);
+        if (err?.status === 500 || err?.status === 400 || err?.status === 404) {
+          return tryFetch(listUrlFallback);
         }
         throw new Error("HTTP " + (err?.status || "?"));
       })
@@ -808,7 +808,18 @@ function App() {
       setNewItemFile(null);
       setShowCreateForm(false);
       
-      // Зареди items първо
+      // Оптимистично добави новата обява в списъка – веднага се вижда в „Моите обяви“
+      setItems((prev) => {
+        if (prev.some((it) => it.id === createdItem.id)) return prev;
+        const next = [...prev, { ...createdItem, ownerEmail: createdItem.ownerEmail || loggedInEmail }];
+        return next.sort((a, b) => {
+          const aVip = a.isVip === true;
+          const bVip = b.isVip === true;
+          if (aVip && !bVip) return -1;
+          if (!aVip && bVip) return 1;
+          return 0;
+        });
+      });
       loadItems();
       
       // Отвори автоматично новосъздадената обява в детайлен view

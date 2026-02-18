@@ -83,6 +83,7 @@ public class ItemController {
     }
 
     @GetMapping
+    @JsonView(JsonViews.WithImage.class)
     public List<Item> getAll() {
         return itemService.getAll();
     }
