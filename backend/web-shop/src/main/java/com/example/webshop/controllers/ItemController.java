@@ -1,8 +1,10 @@
 package com.example.webshop.controllers;
 
+import com.example.webshop.config.JsonViews;
 import com.example.webshop.dto.ItemListDto;
 import com.example.webshop.models.Item;
 import com.example.webshop.services.ItemService;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,7 @@ public class ItemController {
     }
 
     @PostMapping
+    @JsonView(JsonViews.WithImage.class)
     public ResponseEntity<?> create(@RequestBody Item item) {
         try {
             // Валидация на входните данни
@@ -40,6 +43,10 @@ public class ItemController {
             if (item.getDescription() == null || item.getDescription().trim().isEmpty()) {
                 logger.error("Create item attempt with empty description");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Description is required");
+            }
+            if (item.getDescription().trim().length() < 40) {
+                logger.error("Create item attempt with description too short: {} chars", item.getDescription().length());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Description must be at least 40 characters");
             }
             
             if (item.getPrice() <= 0) {
@@ -82,6 +89,7 @@ public class ItemController {
     }
 
     @GetMapping("/{id:[0-9]+}")
+    @JsonView(JsonViews.WithImage.class)
     public Item getById(@PathVariable Long id) {
         return itemService.getById(id);
     }

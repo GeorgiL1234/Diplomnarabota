@@ -16,6 +16,8 @@ export const translations = {
     
     // Auth
     welcome: "Добре дошли!",
+    welcomeToWebShop: "Добре дошли в Web Shop!",
+    pleaseLoginOrRegister: "Моля, влезте в системата или се регистрирайте, за да продължите.",
     loggedInAs: "Логнат като:",
     logout: "Изход",
     authTitle: "Вход / Регистрация",
@@ -116,6 +118,10 @@ export const translations = {
     categoryCars: "Автомобили",
     categoryOther: "Други",
     
+    // VIP page
+    vipListingsTitle: "VIP Обяви",
+    noVipListingsInCategory: "Няма VIP обяви в тази категория.",
+    
     // Order
     orderButton: "Поръчай",
     orderTitle: "Поръчка",
@@ -123,11 +129,17 @@ export const translations = {
     paymentBankTransfer: "Банков път",
     paymentCashOnDelivery: "Наложен платеж",
     deliveryMethod: "Начин на доставка:",
+    deliveryCourier: "Куриерска услуга:",
+    deliveryType: "Тип доставка:",
+    deliveryToAddress: "До адрес",
+    deliveryToOffice: "До офис",
     deliverySpeedy: "Спиди",
     deliveryEcont: "Еконт",
     deliveryNote: "⚠️ Доставката се приема от купувача",
     deliveryAddress: "Адрес за доставка:",
     deliveryAddressPlaceholder: "Въведете пълен адрес за доставка",
+    deliveryOfficeInfo: "Офис на куриера:",
+    deliveryOfficePlaceholder: "Напр. Офис София - Център, Офис Пловдив - Тракия или номер на офис",
     submitOrder: "Потвърди поръчката",
     cancelOrder: "Откажи",
     successOrderCreated: "Поръчката е създадена успешно!",
@@ -198,6 +210,8 @@ export const translations = {
     
     // Auth
     welcome: "Welcome!",
+    welcomeToWebShop: "Welcome to Web Shop!",
+    pleaseLoginOrRegister: "Please log in or register to continue.",
     loggedInAs: "Logged in as:",
     logout: "Logout",
     authTitle: "Login / Register",
@@ -298,6 +312,10 @@ export const translations = {
     categoryCars: "Cars",
     categoryOther: "Other",
     
+    // VIP page
+    vipListingsTitle: "VIP Listings",
+    noVipListingsInCategory: "No VIP listings in this category.",
+    
     // Order
     orderButton: "Order",
     orderTitle: "Place Order",
@@ -306,11 +324,17 @@ export const translations = {
     paymentRevolut: "Revolut",
     paymentCashOnDelivery: "Cash on Delivery",
     deliveryMethod: "Delivery Method:",
+    deliveryCourier: "Courier Service:",
+    deliveryType: "Delivery Type:",
+    deliveryToAddress: "To address",
+    deliveryToOffice: "To office",
     deliverySpeedy: "Speedy",
     deliveryEcont: "Econt",
     deliveryNote: "⚠️ Delivery is accepted by the buyer",
     deliveryAddress: "Delivery Address:",
     deliveryAddressPlaceholder: "Enter full delivery address",
+    deliveryOfficeInfo: "Courier Office:",
+    deliveryOfficePlaceholder: "E.g. Sofia - Center Office, Plovdiv - Trakia or office number",
     submitOrder: "Confirm Order",
     cancelOrder: "Cancel",
     successOrderCreated: "Order created successfully!",
@@ -380,6 +404,8 @@ export const translations = {
     
     // Auth
     welcome: "Добро пожаловать!",
+    welcomeToWebShop: "Добро пожаловать в Web Shop!",
+    pleaseLoginOrRegister: "Пожалуйста, войдите или зарегистрируйтесь, чтобы продолжить.",
     loggedInAs: "Вход выполнен как:",
     logout: "Выход",
     authTitle: "Вход / Регистрация",
@@ -480,6 +506,10 @@ export const translations = {
     categoryCars: "Автомобили",
     categoryOther: "Другое",
     
+    // VIP page
+    vipListingsTitle: "VIP Объявления",
+    noVipListingsInCategory: "Нет VIP объявлений в этой категории.",
+    
     // Order
     orderButton: "Заказать",
     orderTitle: "Оформление заказа",
@@ -488,11 +518,17 @@ export const translations = {
     paymentRevolut: "Revolut",
     paymentCashOnDelivery: "Наложенный платеж",
     deliveryMethod: "Способ доставки:",
+    deliveryCourier: "Курьерская служба:",
+    deliveryType: "Тип доставки:",
+    deliveryToAddress: "На адрес",
+    deliveryToOffice: "В офис",
     deliverySpeedy: "Speedy",
     deliveryEcont: "Econt",
     deliveryNote: "⚠️ Доставка принимается покупателем",
     deliveryAddress: "Адрес доставки:",
     deliveryAddressPlaceholder: "Введите полный адрес доставки",
+    deliveryOfficeInfo: "Офис курьера:",
+    deliveryOfficePlaceholder: "Напр. Офис София - Центр, офис Пловдив или номер офиса",
     submitOrder: "Подтвердить заказ",
     cancelOrder: "Отмена",
     successOrderCreated: "Заказ успешно создан!",
@@ -548,3 +584,20 @@ export const translations = {
     selectListingToAskQuestion: "Выберите объявление из списка, чтобы задать вопрос",
   },
 };
+
+/** Мапване категория (BG ключ) -> translation key */
+const CATEGORY_TO_KEY: Record<string, keyof typeof translations.bg> = {
+  "Всички": "categoryAll",
+  "Електроника": "categoryElectronics",
+  "Книги": "categoryBooks",
+  "Дрехи": "categoryClothing",
+  "Спорт": "categorySports",
+  "Дом и градина": "categoryHomeGarden",
+  "Автомобили": "categoryCars",
+  "Други": "categoryOther",
+};
+
+export function getCategoryLabel(category: string, t: typeof translations.bg): string {
+  const key = CATEGORY_TO_KEY[category];
+  return key ? (t as Record<string, string>)[key] ?? category : category;
+}

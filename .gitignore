@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local / Env ###
+.env.local
+*.env.local
+
+### H2 Database (local dev) ###
+backend/web-shop/data/

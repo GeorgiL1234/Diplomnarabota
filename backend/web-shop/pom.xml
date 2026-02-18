@@ -29,6 +29,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- WebSocket за лайв чат -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- Actuator - вграден /actuator/health за UptimeRobot и проверки -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

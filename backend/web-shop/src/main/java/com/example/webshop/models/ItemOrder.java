@@ -27,8 +27,8 @@ public class ItemOrder {
     @Column(nullable = false)
     private String paymentMethod; // "card", "revolut", "cash_on_delivery"
 
-    @Column(nullable = false)
-    private String deliveryMethod; // "speedy", "econt"
+    @Column(nullable = false, length = 50)
+    private String deliveryMethod; // "speedy_address", "speedy_office", "econt_address", "econt_office"
 
     @Column(nullable = false, length = 500)
     private String deliveryAddress;

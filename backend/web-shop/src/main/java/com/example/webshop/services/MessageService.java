@@ -18,10 +18,13 @@ public class MessageService {
     private static final Logger logger = LoggerFactory.getLogger(MessageService.class);
     private final MessageRepository messageRepository;
     private final ItemRepository itemRepository;
+    private final WebSocketNotificationService wsNotification;
 
-    public MessageService(MessageRepository messageRepository, ItemRepository itemRepository) {
+    public MessageService(MessageRepository messageRepository, ItemRepository itemRepository,
+                          WebSocketNotificationService wsNotification) {
         this.messageRepository = messageRepository;
         this.itemRepository = itemRepository;
+        this.wsNotification = wsNotification;
     }
 
     @Transactional
@@ -63,7 +66,7 @@ public class MessageService {
         
         Message saved = messageRepository.save(message);
         logger.info("Message saved successfully with ID: {}", saved.getId());
-        
+        wsNotification.notifyNewMessage(saved);
         return saved;
     }
 
@@ -77,7 +80,9 @@ public class MessageService {
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
         message.setResponse(response);
-        return messageRepository.save(message);
+        Message saved = messageRepository.save(message);
+        wsNotification.notifyNewResponse(saved);
+        return saved;
     }
 
     // Въпроси, които потребителят е задал (като купувач)

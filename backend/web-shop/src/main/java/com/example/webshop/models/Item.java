@@ -1,6 +1,8 @@
 package com.example.webshop.models;
 
+import com.example.webshop.config.JsonViews;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -75,6 +77,7 @@ public class Item {
         this.price = price;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getImageUrl() {
         return imageUrl;
     }

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import { CATEGORIES } from "../types";
-import { translations, type Language } from "../translations";
+import { translations, getCategoryLabel, type Language } from "../translations";
 
 type CreateListingFormProps = {
   show: boolean;
@@ -85,13 +85,15 @@ export function CreateListingForm({
         />
       </div>
       <div className="form-group">
-        <label>{t.description}</label>
+        <label>{t.description} * ({language === "bg" ? "мин. 40 символа" : language === "en" ? "min 40 chars" : "мин. 40 символов"})</label>
         <textarea
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
           required
+          minLength={40}
           rows={3}
           disabled={isCreating}
+          placeholder={language === "bg" ? "Опишете подробно продукта (минимум 40 символа)..." : language === "en" ? "Describe the product in detail (min 40 characters)..." : "Опишите продукт подробно (минимум 40 символов)..."}
         />
       </div>
       <div className="form-row">
@@ -111,13 +113,16 @@ export function CreateListingForm({
           <select value={category} onChange={(e) => onCategoryChange(e.target.value)} disabled={isCreating}>
             {CATEGORIES.filter((c) => c !== "Всички").map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {getCategoryLabel(cat, t)}
               </option>
             ))}
           </select>
         </div>
       </div>
       <div className="form-row">
+        <p style={{ width: "100%", fontSize: "12px", color: "#64748b", marginBottom: "8px", fontStyle: "italic" }}>
+          {t.contactRequired}
+        </p>
         <div className="form-group">
           <label>{t.contactEmail}</label>
           <input
@@ -149,9 +154,6 @@ export function CreateListingForm({
           )}
         </div>
       </div>
-      <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px", fontStyle: "italic" }}>
-        {t.contactRequired}
-      </p>
       <div className="form-group">
         <label>{t.paymentMethod}</label>
         <select value={paymentMethod} onChange={(e) => onPaymentMethodChange(e.target.value)} disabled={isCreating}>

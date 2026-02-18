@@ -1,6 +1,6 @@
 import type { Item } from "../types";
 import { getImageUrl } from "../config";
-import { translations, type Language } from "../translations";
+import { translations, getCategoryLabel, type Language } from "../translations";
 
 type ItemCardProps = {
   item: Item;
@@ -55,7 +55,7 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
             <span className="item-currency">{t.currency}</span>
           </div>
           {item.category && (
-            <span className="item-category">{item.category}</span>
+            <span className="item-category">{getCategoryLabel(item.category, t)}</span>
           )}
         </div>
       </div>

@@ -1,5 +1,6 @@
 import type { Item } from "../types";
 import type { Language } from "../translations";
+import { translations, getCategoryLabel } from "../translations";
 import { ItemList } from "./ItemList";
 
 type VipListingsPageProps = {
@@ -19,10 +20,8 @@ export function VipListingsPage({
   onItemClick,
   onCategoryChange,
 }: VipListingsPageProps) {
-  // Филтрираме само VIP обявите
+  const t = translations[language];
   const vipItems = items.filter((item) => item.isVip === true);
-
-  // Филтрираме по категория ако е избрана
   const filteredItems =
     selectedCategory === "Всички"
       ? vipItems
@@ -34,32 +33,31 @@ export function VipListingsPage({
         <div className="listings-header">
           <h2 style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: '-40px', top: '50%', transform: 'translateY(-50%)', fontSize: '32px' }}>👑</span>
-            VIP Обяви
+            {t.vipListingsTitle}
           </h2>
         </div>
 
-        {/* Филтър по категория */}
         <div className="category-filter">
           <label>
-            <strong>Категория:</strong>
+            <strong>{t.category}</strong>
             <select
               value={selectedCategory}
               onChange={(e) => onCategoryChange(e.target.value)}
             >
-              <option value="Всички">Всички</option>
-              <option value="Електроника">Електроника</option>
-              <option value="Книги">Книги</option>
-              <option value="Дрехи">Дрехи</option>
-              <option value="Спорт">Спорт</option>
-              <option value="Дом и градина">Дом и градина</option>
-              <option value="Автомобили">Автомобили</option>
-              <option value="Други">Други</option>
+              <option value="Всички">{getCategoryLabel("Всички", t)}</option>
+              <option value="Електроника">{getCategoryLabel("Електроника", t)}</option>
+              <option value="Книги">{getCategoryLabel("Книги", t)}</option>
+              <option value="Дрехи">{getCategoryLabel("Дрехи", t)}</option>
+              <option value="Спорт">{getCategoryLabel("Спорт", t)}</option>
+              <option value="Дом и градина">{getCategoryLabel("Дом и градина", t)}</option>
+              <option value="Автомобили">{getCategoryLabel("Автомобили", t)}</option>
+              <option value="Други">{getCategoryLabel("Други", t)}</option>
             </select>
           </label>
         </div>
 
         {filteredItems.length === 0 ? (
-          <p className="info-text">Няма VIP обяви в тази категория.</p>
+          <p className="info-text">{t.noVipListingsInCategory}</p>
         ) : (
           <ItemList
             items={filteredItems}

@@ -77,6 +77,9 @@ export function ItemDetail({
 }: ItemDetailProps) {
   const t = translations[language];
 
+  const imageSrc = item.imageUrl ? getImageUrl(item.imageUrl) : null;
+  const placeholderSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
+
   return (
     <section className="detail-view-section" key={`detail-${item.id}`}>
       <div className="detail-view-container">
@@ -84,6 +87,16 @@ export function ItemDetail({
           {t.backToListings}
         </button>
         <div className="item-details-full">
+          {/* Снимка на обявата – винаги показваме (снимка или placeholder) */}
+          <div className="item-detail-image-wrapper" style={{ marginBottom: "20px", borderRadius: "12px", overflow: "hidden", maxWidth: "100%", aspectRatio: "16/10", background: "#f1f5f9" }}>
+            <img
+              src={imageSrc || placeholderSvg}
+              alt={item.title || ""}
+              className="item-detail-image"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              onError={(e) => { e.currentTarget.src = placeholderSvg; }}
+            />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
             <h2 style={{ margin: 0 }}>{item.title || ""}</h2>
             {item.isVip && (
@@ -188,24 +201,49 @@ export function ItemDetail({
                 </select>
               </div>
               <div className="form-group">
-                <label>{t.deliveryMethod}</label>
+                <label>{t.deliveryCourier}</label>
                 <select
-                  value={deliveryMethod}
-                  onChange={(e) => onDeliveryMethodChange(e.target.value)}
+                  value={(deliveryMethod && deliveryMethod.includes("_")) ? deliveryMethod.split("_")[0] : deliveryMethod || ""}
+                  onChange={(e) => {
+                    const courier = e.target.value;
+                    if (courier) {
+                      const prevType = deliveryMethod.includes("office") ? "office" : "address";
+                      onDeliveryMethodChange(courier + "_" + (deliveryMethod.startsWith(courier) ? prevType : "address"));
+                    } else {
+                      onDeliveryMethodChange("");
+                    }
+                  }}
                   required
                 >
-                  <option value="">{t.deliveryMethod}</option>
+                  <option value="">{t.deliveryCourier}</option>
                   <option value="speedy">{t.deliverySpeedy}</option>
                   <option value="econt">{t.deliveryEcont}</option>
                 </select>
               </div>
+              {deliveryMethod && (deliveryMethod.startsWith("speedy") || deliveryMethod.startsWith("econt")) && (
+                <div className="form-group">
+                  <label>{t.deliveryType}</label>
+                  <select
+                    value={deliveryMethod.includes("office") ? "office" : "address"}
+                    onChange={(e) => {
+                      const type = e.target.value;
+                      const courier = deliveryMethod.split("_")[0] || "speedy";
+                      onDeliveryMethodChange(courier + "_" + type);
+                    }}
+                    required
+                  >
+                    <option value="address">{t.deliveryToAddress}</option>
+                    <option value="office">{t.deliveryToOffice}</option>
+                  </select>
+                </div>
+              )}
               <p className="delivery-note">{t.deliveryNote}</p>
               <div className="form-group">
-                <label>{t.deliveryAddress}</label>
+                <label>{deliveryMethod.includes("office") ? t.deliveryOfficeInfo : t.deliveryAddress}</label>
                 <textarea
                   value={deliveryAddress}
                   onChange={(e) => onDeliveryAddressChange(e.target.value)}
-                  placeholder={t.deliveryAddressPlaceholder}
+                  placeholder={deliveryMethod.includes("office") ? t.deliveryOfficePlaceholder : t.deliveryAddressPlaceholder}
                   rows={3}
                   required
                 />
@@ -247,14 +285,6 @@ export function ItemDetail({
               )}
             </div>
           </div>
-
-          {item.imageUrl && (
-            <img
-              src={getImageUrl(item.imageUrl)}
-              alt={item.title}
-              className="item-detail-image"
-            />
-          )}
 
           {/* Качване на снимка */}
           {item.ownerEmail && item.ownerEmail === loggedInEmail && (

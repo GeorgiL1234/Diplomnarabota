@@ -10,6 +10,13 @@ type OrdersPageProps = {
   onUpdateOrderStatus: (orderId: number, status: string) => void;
 };
 
+function formatDeliveryMethod(dm: string, t: { deliverySpeedy: string; deliveryEcont: string; deliveryToAddress: string; deliveryToOffice: string }): string {
+  if (!dm) return "";
+  if (dm.startsWith("speedy_")) return t.deliverySpeedy + " – " + (dm.includes("office") ? t.deliveryToOffice : t.deliveryToAddress);
+  if (dm.startsWith("econt_")) return t.deliveryEcont + " – " + (dm.includes("office") ? t.deliveryToOffice : t.deliveryToAddress);
+  return dm;
+}
+
 export function OrdersPage({
   myOrders,
   sellerOrders,
@@ -57,14 +64,10 @@ export function OrdersPage({
                     </p>
                     <p>
                       <strong>{t.deliveryMethod}:</strong>{" "}
-                      {order.deliveryMethod === "speedy"
-                        ? t.deliverySpeedy
-                        : order.deliveryMethod === "econt"
-                          ? t.deliveryEcont
-                          : order.deliveryMethod}
+                      {formatDeliveryMethod(order.deliveryMethod, t)}
                     </p>
                     <p>
-                      <strong>{t.deliveryAddress}:</strong> {order.deliveryAddress}
+                      <strong>{order.deliveryMethod?.includes("office") ? t.deliveryOfficeInfo : t.deliveryAddress}:</strong> {order.deliveryAddress}
                     </p>
                   </div>
                   <button className="btn-secondary" onClick={() => onViewItem(order.item)}>
@@ -112,14 +115,10 @@ export function OrdersPage({
                     </p>
                     <p>
                       <strong>{t.deliveryMethod}:</strong>{" "}
-                      {order.deliveryMethod === "speedy"
-                        ? t.deliverySpeedy
-                        : order.deliveryMethod === "econt"
-                          ? t.deliveryEcont
-                          : order.deliveryMethod}
+                      {formatDeliveryMethod(order.deliveryMethod, t)}
                     </p>
                     <p>
-                      <strong>{t.deliveryAddress}:</strong> {order.deliveryAddress}
+                      <strong>{order.deliveryMethod?.includes("office") ? t.deliveryOfficeInfo : t.deliveryAddress}:</strong> {order.deliveryAddress}
                     </p>
                   </div>
                   {order.status === "PENDING" && (

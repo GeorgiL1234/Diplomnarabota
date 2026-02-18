@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import "./App.css";
-import { translations, type Language } from "./translations";
+import { translations, getCategoryLabel, type Language } from "./translations";
 import type { Item, Favorite, Review, Message, ItemOrder, View } from "./types";
 import { CATEGORIES } from "./types";
 import { API_BASE } from "./config";
@@ -18,6 +18,7 @@ import { FavoritesPage } from "./components/FavoritesPage";
 import { VipListingsPage } from "./components/VipListingsPage";
 import { VipPaymentForm } from "./components/VipPaymentForm";
 import { LandingPage } from "./components/LandingPage";
+import { useWebSocketMessages } from "./useWebSocketMessages";
 
 function App() {
   // auth - login state (отделни променливи за вход)
@@ -124,9 +125,15 @@ function App() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [favoriteItemIds, setFavoriteItemIds] = useState<Set<number>>(new Set());
 
-  // language / език
-  const [language, setLanguage] = useState<Language>("bg");
-  const t = translations[language] || translations["bg"]; // Fallback към български
+  // language / език – запазваме в localStorage за да остане след refresh
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem("language");
+    return saved === "en" || saved === "ru" ? saved : "bg";
+  });
+  useEffect(() => {
+    localStorage.setItem("language", language);
+  }, [language]);
+  const t = translations[language] || translations["bg"];
 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -139,9 +146,12 @@ function App() {
         return res.json();
       });
 
-    tryFetch(`${API_BASE}/items/list`)
+    // Локален backend: използваме /items (с imageUrl). Render: /items/list (без imageUrl, избягва 500)
+    const useFullItems = API_BASE.includes("localhost");
+    const listUrl = useFullItems ? `${API_BASE}/items` : `${API_BASE}/items/list`;
+
+    tryFetch(listUrl)
       .catch((err) => {
-        // Fallback: ако /list връща 400/404 (backend не е обновен), опитай /items
         if (err?.status === 400 || err?.status === 404) {
           return tryFetch(`${API_BASE}/items`);
         }
@@ -199,12 +209,10 @@ function App() {
   useEffect(() => {
     // Зареждаме съобщенията когато отворим страницата за съобщения
     if (view === "messages" && loggedInEmail) {
-      console.log("Messages page opened, loading messages for:", loggedInEmail);
-      // Малко забавяне за да се гарантира че всичко е готово
-      const timer = setTimeout(() => {
-        loadAllMessages();
-      }, 100);
-      return () => clearTimeout(timer);
+      loadAllMessages();
+      // Fallback polling ако WebSocket не се свърже (напр. Render cold start)
+      const fallbackInterval = setInterval(loadAllMessages, 10000);
+      return () => clearInterval(fallbackInterval);
     }
     // Зареждаме поръчките когато отворим страницата за поръчки
     if (view === "orders" && loggedInEmail) {
@@ -675,77 +683,117 @@ function App() {
       setIsCreatingListing(false);
       return;
     }
+    if (newItemDescription.trim().length < 40) {
+      setError(language === "bg" ? "Описанието трябва да е поне 40 символа" : language === "en" ? "Description must be at least 40 characters" : "Описание должно быть не менее 40 символов");
+      setIsCreatingListing(false);
+      return;
+    }
     
     try {
-      console.log("CREATE-WITH-IMAGE-BASE64-v2"); // Ако виждаш това в console, имаш новата версия
-      console.log("Creating listing:", {
-        title: newItemTitle,
-        description: newItemDescription,
-        price: newItemPrice,
+      let createdItem: Item;
+      const createPayload = {
+        title: newItemTitle.trim(),
+        description: newItemDescription.trim(),
+        price: priceValue,
+        ownerEmail: loggedInEmail,
         category: newItemCategory,
-        contactEmail: emailTrimmed,
-        contactPhone: phoneTrimmed,
-        paymentMethod: newItemPaymentMethod,
-        isVip: newItemIsVip,
-      });
+        contactEmail: emailTrimmed || null,
+        contactPhone: phoneTrimmed || null,
+        paymentMethod: newItemPaymentMethod || null,
+        isVip: false,
+      };
       
-      // Конвертирай снимката в base64 и включи в create request (избягваме отделен upload endpoint)
-      // Компресирай до ~0.3MB за Render.com (512MB RAM) – base64 ≈ +33% размер
+      // Опит 1: create със снимка (компресирана до 150KB)
       setMessage(language === "bg" ? "Подготвяне на снимката..." : "Preparing image...");
-      const fileToSend = newItemFile.size > 300 * 1024
-        ? await compressImage(newItemFile, 0.3)
+      const fileToSend = newItemFile.size > 150 * 1024
+        ? await compressImage(newItemFile, 0.15)
         : newItemFile;
-      const imageUrl = await fileToBase64DataUri(fileToSend);
-      setMessage(null);
+      const imageAsBase64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(fileToSend);
+      });
+      setMessage(language === "bg" ? "Създаване на обява..." : "Creating listing...");
       
-      // Timeout 90 сек – Render.com cold start може да отнеме 50–60 сек
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
-      
-      const res = await fetch(`${API_BASE}/items`, {
+      let res = await fetch(`${API_BASE}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({
-          title: newItemTitle.trim(),
-          description: newItemDescription.trim(),
-          price: priceValue,
-          ownerEmail: loggedInEmail,
-          category: newItemCategory,
-          contactEmail: emailTrimmed || null,
-          contactPhone: phoneTrimmed || null,
-          paymentMethod: newItemPaymentMethod || null,
-          isVip: false, // Винаги създаваме като не-VIP първо, после активираме ако е платено
-          imageUrl,
-        }),
+        body: JSON.stringify({ ...createPayload, imageUrl: imageAsBase64 }),
         signal: controller.signal,
       });
-      
       clearTimeout(timeoutId);
       
-      console.log("Create listing response status:", res.status);
-      
-      if (!res.ok) {
+      if (res.ok) {
+        createdItem = await res.json() as Item;
+      } else if (res.status === 500) {
+        // Опит 2: create без снимка, после upload
+        setMessage(language === "bg" ? "Създаване на обява..." : "Creating listing...");
+        const ctrl2 = new AbortController();
+        const t2 = setTimeout(() => ctrl2.abort(), 90000);
+        res = await fetch(`${API_BASE}/items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json; charset=UTF-8" },
+          body: JSON.stringify({ ...createPayload, imageUrl: null }),
+          signal: ctrl2.signal,
+        });
+        clearTimeout(t2);
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || t.errorCreateListing);
+        }
+        createdItem = await res.json() as Item;
+      } else {
         const errorText = await res.text();
-        console.error("Create listing error:", res.status, errorText);
         if (res.status === 413) {
           throw new Error(language === "bg"
-            ? "Снимката е твърде голяма. Моля, изберете по-малка снимка (под 300KB)."
-            : language === "en"
-            ? "Image is too large. Please select a smaller image (under 300KB)."
-            : "Изображение слишком большое. Выберите меньшее изображение (менее 300 КБ).");
+            ? "Снимката е твърде голяма. Моля, изберете по-малка снимка."
+            : "Image is too large. Please select a smaller image.");
         }
         let errMsg = t.errorCreateListing;
         try {
-          const errorJson = JSON.parse(errorText);
-          errMsg = errorJson.error || errorJson.message || errMsg;
+          const j = JSON.parse(errorText);
+          errMsg = j.error || j.message || errMsg;
         } catch {
-          if (res.status === 500 && errorText) errMsg = errorText;
+          if (errorText) errMsg = errorText;
         }
         throw new Error(errMsg);
       }
-      
-      const createdItem = await res.json();
       console.log("Listing created successfully:", createdItem);
+      
+      // Backend create response не включва imageUrl (JsonView) – зареждаме пълния item
+      if (createdItem.id && !createdItem.imageUrl) {
+        createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
+          cache: "no-store",
+        }).then((r) => r.json());
+      }
+      
+      // Ако все още няма снимка (fallback create), качваме чрез upload
+      if (!createdItem.imageUrl && createdItem.id && newItemFile) {
+        setMessage(language === "bg" ? "Качване на снимката..." : "Uploading image...");
+        const formData = new FormData();
+        const fileToUpload = newItemFile.size > 3 * 1024 * 1024
+          ? await compressImage(newItemFile, 2.5)
+          : newItemFile;
+        formData.append("file", fileToUpload);
+        formData.append("ownerEmail", loggedInEmail!);
+        try {
+          const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
+            method: "POST",
+            body: formData,
+          });
+          if (uploadRes.ok) {
+            createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
+              cache: "no-store",
+            }).then((r) => r.json());
+          }
+        } catch {
+          // Обявата е създадена, снимката не се качи
+        }
+        setMessage(null);
+      }
       
       setNewItemTitle("");
       setNewItemDescription("");
@@ -774,7 +822,7 @@ function App() {
         setPendingVipItemId(createdItem.id);
         setShowVipPayment(true);
       }
-      // Снимката вече е включена в create request (imageUrl base64)
+      // Снимката се качва отделно след create (multipart upload)
     } catch (err: unknown) {
       setMessage(null);
       const e = err as Error & { name?: string };
@@ -790,20 +838,6 @@ function App() {
     } finally {
       setIsCreatingListing(false);
     }
-  };
-
-  // Конвертира File в base64 data URI - за включване в create request (избягваме отделен upload)
-  const fileToBase64DataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        if (result) resolve(result);
-        else reject(new Error("Failed to read file"));
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
   };
 
   // Функция за компресия на снимка - по-агресивна за Render.com (ограничена памет)
@@ -976,7 +1010,7 @@ function App() {
       console.log("Fetching from URL:", url);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 сек – Render cold start
       
       const res = await fetch(url, {
         signal: controller.signal,
@@ -1034,7 +1068,7 @@ function App() {
       console.log("Fetching from URL:", url);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 сек – Render cold start
       
       const res = await fetch(url, {
         signal: controller.signal,
@@ -1084,6 +1118,9 @@ function App() {
   const loadAllMessages = async () => {
     await Promise.all([loadSentMessages(), loadReceivedMessages()]);
   };
+
+  // WebSocket лайв чат – при ново съобщение/отговор зареждаме автоматично (работи с localhost и Render)
+  useWebSocketMessages(loggedInEmail, loadAllMessages, view === "messages");
 
   // Зареждане на поръчките на потребителя (като купувач)
   const loadMyOrders = async () => {
@@ -1309,7 +1346,7 @@ function App() {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунди timeout
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 сек – Render cold start
       
       const res = await fetch(`${API_BASE}/items/${selectedItem.id}/messages`, {
         method: "POST",
@@ -1377,7 +1414,7 @@ function App() {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунди timeout
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 сек – Render cold start
       
       const res = await fetch(`${API_BASE}/items/messages/${messageId}/response`, {
         method: "PUT",
@@ -1759,13 +1796,13 @@ function App() {
         <section className="listings-section">
           <div className="listings-main">
             <div className="listings-header">
-              <h2>{view === "all" ? "Всички обяви" : "Моите обяви"}</h2>
+              <h2>{view === "all" ? t.allListings : t.myListings}</h2>
               {view === "mine" && loggedInEmail && (
                 <button
                   className="btn-primary"
                   onClick={() => setShowCreateForm(!showCreateForm)}
                 >
-                  {showCreateForm ? "Откажи" : "+ Създай обява"}
+                  {showCreateForm ? t.cancel : t.createListing}
                 </button>
               )}
             </div>
@@ -1802,14 +1839,14 @@ function App() {
             {!showCreateForm && (
               <div className="category-filter">
                 <label>
-                  <strong>Категория:</strong>
+                  <strong>{t.category}</strong>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
-                        {cat}
+                        {getCategoryLabel(cat, t)}
                       </option>
                     ))}
                   </select>
@@ -1819,7 +1856,7 @@ function App() {
 
             {view === "mine" && !loggedInEmail && (
               <p className="info-text">
-                За да виждате „моите обяви“, първо влезте в системата.
+                {t.loginToSeeListings}
               </p>
             )}
 
@@ -1838,14 +1875,14 @@ function App() {
       {/* FALLBACK - ако нищо не се показва */}
       {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && view !== "vip" && view !== "home" && (
         <div style={{ padding: "40px", textAlign: "center", background: "rgba(255, 255, 255, 0.95)", margin: "40px auto", maxWidth: "600px", borderRadius: "12px" }}>
-          <h2>Добре дошли в Web Shop!</h2>
-          <p>Моля, влезте в системата или се регистрирайте, за да продължите.</p>
+          <h2>{t.welcomeToWebShop}</h2>
+          <p>{t.pleaseLoginOrRegister}</p>
           <button 
             className="btn-primary" 
             onClick={() => setView("login")}
             style={{ marginTop: "20px" }}
           >
-            Вход / Регистрация
+            {t.authTitle}
           </button>
         </div>
       )}

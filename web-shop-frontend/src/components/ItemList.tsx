@@ -1,5 +1,6 @@
 import type { Item, View } from "../types";
 import type { Language } from "../translations";
+import { translations } from "../translations";
 import { ItemCard } from "./ItemCard";
 
 type ItemListProps = {
@@ -25,11 +26,12 @@ export function ItemList({ items, view, loggedInEmail, selectedCategory, languag
     return true;
   });
 
+  const t = translations[language];
   if (filteredItems.length === 0) {
     return (
       <div className="empty-state">
         <div className="empty-state-icon">📭</div>
-        <p className="info-text">Няма обяви.</p>
+        <p className="info-text">{t.noListings}</p>
       </div>
     );
   }

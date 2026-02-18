@@ -156,7 +156,7 @@ export function Header({
                         onClick={() => handleViewChange("vip")}
                       >
                         <span className="nav-icon">👑</span>
-                        VIP Обяви
+                        {t.vipListingsTitle}
                       </button>
                     </div>
                   )}
@@ -193,7 +193,7 @@ export function Header({
                       }}
                     >
                       <span className="nav-icon">🚪</span>
-                      Изход
+                      {t.logout}
                     </button>
                   </div>
                 )}
@@ -301,7 +301,7 @@ export function Header({
                   onClick={() => handleViewChange("vip")}
                 >
                   <span className="nav-icon">👑</span>
-                  VIP Обяви
+                  {t.vipListingsTitle}
                 </button>
                 <button
                   type="button"
@@ -312,7 +312,7 @@ export function Header({
                   }}
                 >
                   <span className="nav-icon">🚪</span>
-                  Изход
+                  {t.logout}
                 </button>
               </>
             )}
