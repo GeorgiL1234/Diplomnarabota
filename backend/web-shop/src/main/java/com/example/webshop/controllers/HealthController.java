@@ -9,7 +9,7 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class HealthController {
 
-    private static final String BUILD = "image-in-create-v2";
+    private static final String BUILD = "v3-feb2026";
 
     /** Root health endpoint - за UptimeRobot и проверка на backend */
     @GetMapping("/health")

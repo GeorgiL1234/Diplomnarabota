@@ -146,14 +146,14 @@ function App() {
         return res.json();
       });
 
-    // Опит за /items (пълен със снимки). При 500 fallback към /items/list
-    const listUrl = `${API_BASE}/items`;
-    const listUrlFallback = `${API_BASE}/items/list`;
+    // Локално: /items (пълен). Production: /items/list (избягва 500 от големи base64)
+    const useFull = API_BASE.includes("localhost");
+    const listUrl = useFull ? `${API_BASE}/items` : `${API_BASE}/items/list`;
 
     tryFetch(listUrl)
       .catch((err) => {
-        if (err?.status === 500 || err?.status === 400 || err?.status === 404) {
-          return tryFetch(listUrlFallback);
+        if (!useFull && (err?.status === 400 || err?.status === 404)) {
+          return tryFetch(`${API_BASE}/items`);
         }
         throw new Error("HTTP " + (err?.status || "?"));
       })
