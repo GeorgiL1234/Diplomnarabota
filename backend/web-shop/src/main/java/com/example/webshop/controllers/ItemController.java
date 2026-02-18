@@ -54,6 +54,11 @@ public class ItemController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Price must be greater than 0");
             }
             
+            if (item.getOwnerEmail() == null || item.getOwnerEmail().trim().isEmpty()) {
+                logger.error("Create item attempt without ownerEmail");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Owner email is required");
+            }
+            
             logger.info("Creating item: title={}, ownerEmail={}, category={}", 
                     item.getTitle(), item.getOwnerEmail(), item.getCategory());
             

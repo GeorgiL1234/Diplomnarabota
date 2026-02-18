@@ -146,7 +146,7 @@ function App() {
         return res.json();
       });
 
-    // Локален backend: /items (пълен). Render: /items/list (с imageUrl в ItemListDto)
+    // Локален: /items (пълен). Render: /items/list (без imageUrl – снимката се зарежда при отваряне на детайл)
     const useFullItems = API_BASE.includes("localhost");
     const listUrl = useFullItems ? `${API_BASE}/items` : `${API_BASE}/items/list`;
 
@@ -949,16 +949,11 @@ function App() {
   // избиране на продукт + зареждане на ревюта и съобщения
   const openItem = async (item: Item | number) => {
     try {
-      // Ако е ID или item от list (без imageUrl), зареди пълния item от сървъра
-      let itemObj: Item;
-      const idToFetch = typeof item === 'number' ? item : (item.imageUrl == null ? item.id : null);
-      if (idToFetch != null) {
-        const res = await fetch(`${API_BASE}/items/${idToFetch}`);
-        if (!res.ok) throw new Error("Failed to load item");
-        itemObj = await res.json();
-      } else {
-        itemObj = item as Item;
-      }
+      // Винаги зареждаме пълния item от сървъра – гарантира снимка и ownerEmail
+      const id = typeof item === 'number' ? item : item.id;
+      const res = await fetch(`${API_BASE}/items/${id}?t=${Date.now()}`);
+      if (!res.ok) throw new Error("Failed to load item");
+      const itemObj: Item = await res.json();
       
       // Валидирай данните преди да ги използваш
       if (!itemObj || !itemObj.id) {
