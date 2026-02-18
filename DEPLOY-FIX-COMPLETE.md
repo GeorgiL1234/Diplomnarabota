@@ -9,20 +9,29 @@
 ### Проверка дали backend-ът работи
 1. **https://webshop-e6dx.onrender.com/status** → трябва `OK` (backend-ът е жив)
 2. **https://webshop-e6dx.onrender.com/status/version** → трябва `{"build":"v3-feb2026"}` (backend-ът е обновен)  
-Ако получаваш 400/404 → backend-ът не е deploy-нат с последния код или не е свързан с GitHub. Manual Deploy на Render.
+Ако получаваш 404 → Build Command или Root Directory на Render са грешни. Виж по-долу.
 
 ### Ако backend-ът не е свързан с GitHub
 1. Render Dashboard → **Dashboard** → твоето backend приложение
 2. **Manual Deploy** → **Deploy latest commit**
 3. Изчакай 3–5 мин (Java build е бавен)
 
-### Ако backend-ът Е свързан с GitHub
-1. Settings → **Build & Deploy**
-2. **Branch**: `main`
-3. **Root Directory**: празно (корен на repo)
-4. **Build Command**: `cd backend/web-shop && ./mvnw clean package -DskipTests`
-5. **Start Command**: `cd backend/web-shop && java -jar target/web-shop-0.0.1-SNAPSHOT.jar`
-6. Ако няма нов deploy след push → **Manual Deploy**
+### Render – Build & Deploy (ВАЖНО)
+Сервисът „WebShop“ трябва да е **Web Service** (не Static Site). Провери:
+
+1. **Settings** → **Build & Deploy** → скрол надолу
+2. **Root Directory**: остави **празно** (корен на repo)
+3. **Build Command**: `cd backend/web-shop && ./mvnw clean package -DskipTests`
+4. **Start Command**: `cd backend/web-shop && java -jar target/web-shop-0.0.1-SNAPSHOT.jar`
+5. **Environment** → добави: `SPRING_PROFILES_ACTIVE` = `production`
+6. **Save Changes** → **Manual Deploy** → **Deploy latest commit**
+7. Изчакай 5–7 мин и провери **Logs** за грешки
+
+Ако Root Directory е `backend/web-shop`, използвай:
+- **Build Command**: `./mvnw clean package -DskipTests`
+- **Start Command**: `java -jar target/web-shop-0.0.1-SNAPSHOT.jar`
+
+**Ако използваш Docker**: Root Directory = празно, Render ще намери `Dockerfile` в корена и ще build-не от него.
 
 ---
 
