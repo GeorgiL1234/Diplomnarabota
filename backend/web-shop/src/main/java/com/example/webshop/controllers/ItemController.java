@@ -82,6 +82,12 @@ public class ItemController {
         return ResponseEntity.ok("OK");
     }
 
+    /** Версия на backend – за проверка дали deploy-ът е обновен */
+    @GetMapping("/version")
+    public ResponseEntity<java.util.Map<String, String>> version() {
+        return ResponseEntity.ok(java.util.Map.of("build", "v3-feb2026"));
+    }
+
     @GetMapping
     @JsonView(JsonViews.WithImage.class)
     public List<Item> getAll() {
