@@ -698,9 +698,9 @@ function App() {
       const imageUrl = await fileToBase64DataUri(fileToSend);
       setMessage(null);
       
-      // Добавяме timeout от 15 секунди за създаване на обява
+      // Timeout 90 сек – Render.com cold start може да отнеме 50–60 сек
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунди timeout
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       
       const res = await fetch(`${API_BASE}/items`, {
         method: "POST",
@@ -775,9 +775,18 @@ function App() {
         setShowVipPayment(true);
       }
       // Снимката вече е включена в create request (imageUrl base64)
-    } catch (err) {
+    } catch (err: unknown) {
       setMessage(null);
-      setError(String(err));
+      const e = err as Error & { name?: string };
+      if (e?.name === "AbortError") {
+        setError(language === "bg"
+          ? "Заявката отне твърде много време. Render се „подгрява“ – опитайте отново след 1 минута."
+          : language === "en"
+          ? "Request took too long. Render is warming up – try again in 1 minute."
+          : "Запрос занял слишком много времени. Render прогревается – попробуйте через 1 минуту.");
+      } else {
+        setError(e?.message || String(err));
+      }
     } finally {
       setIsCreatingListing(false);
     }
