@@ -31,7 +31,11 @@
 - **Build Command**: `./mvnw clean package -DskipTests`
 - **Start Command**: `java -jar target/web-shop-0.0.1-SNAPSHOT.jar`
 
-**Ако използваш Docker**: Root Directory = празно, Render ще намери `Dockerfile` в корена и ще build-не от него.
+**Ако използваш Docker** (като в твоя случай):
+- **Dockerfile Path**: `backend/web-shop/Dockerfile` ✓
+- **Docker Build Context Directory**: трябва да е `backend/web-shop` (не `.`)
+  - С `.` build-ът търси `mvnw` в корена и не го намира → грешка или стари артефакти
+  - С `backend/web-shop` контекстът е правилният и build-ът минава
 
 ---
 
