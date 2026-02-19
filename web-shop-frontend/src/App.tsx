@@ -797,7 +797,7 @@ function App() {
       setNewItemFile(null);
       setShowCreateForm(false);
       
-      // Оптимистично добави новата обява в списъка – веднага се вижда в „Моите обяви“
+      // Оптимистично добави в списъка
       setItems((prev) => {
         if (prev.some((it) => it.id === createdItem.id)) return prev;
         const next = [...prev, { ...createdItem, ownerEmail: createdItem.ownerEmail || loggedInEmail }];
@@ -809,12 +809,10 @@ function App() {
           return 0;
         });
       });
-      loadItems();
-      
-      // Отвори автоматично новосъздадената обява в детайлен view
+      // Първо selectedItem и view – useEffect ще викне loadItems когато view стане "detail"
       setSelectedItem(createdItem);
-      setReviews([]); // Празни ревюта, защото е нова обява
-      setView("detail"); // Превключи към детайлен view
+      setReviews([]);
+      setView("detail");
       setMessage(uploadFailed
         ? (language === "bg" ? "Обявата е създадена, но снимката не се качи. Опитайте с по-малка снимка." : "Listing created, but image upload failed. Try a smaller image.")
         : t.successListingCreated);
