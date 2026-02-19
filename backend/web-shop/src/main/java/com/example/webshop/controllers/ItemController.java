@@ -100,8 +100,8 @@ public class ItemController {
         return itemService.getAllForList();
     }
 
+    /** Детайли БЕЗ imageUrl – избягва timeout/500 от големи base64. Снимката се взима от /items/{id}/image */
     @GetMapping("/{id:[0-9]+}")
-    @JsonView(JsonViews.WithImage.class)
     public Item getById(@PathVariable Long id) {
         return itemService.getById(id);
     }

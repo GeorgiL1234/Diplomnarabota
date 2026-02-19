@@ -156,8 +156,10 @@ export function ItemDetail({
               
               {/* Лична информация */}
               <div className="form-group">
-                <label>{language === "bg" ? "Име:" : language === "en" ? "Full Name:" : "Имя:"} *</label>
+                <label htmlFor="order-customerName">{language === "bg" ? "Име:" : language === "en" ? "Full Name:" : "Имя:"} *</label>
                 <input
+                  id="order-customerName"
+                  name="customerName"
                   type="text"
                   value={customerName}
                   onChange={(e) => onCustomerNameChange(e.target.value)}
@@ -167,8 +169,10 @@ export function ItemDetail({
               </div>
               
               <div className="form-group">
-                <label>{language === "bg" ? "Телефон:" : language === "en" ? "Phone:" : "Телефон:"} *</label>
+                <label htmlFor="order-customerPhone">{language === "bg" ? "Телефон:" : language === "en" ? "Phone:" : "Телефон:"} *</label>
                 <input
+                  id="order-customerPhone"
+                  name="customerPhone"
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => onCustomerPhoneChange(e.target.value)}
@@ -178,8 +182,10 @@ export function ItemDetail({
               </div>
               
               <div className="form-group">
-                <label>{language === "bg" ? "Email:" : language === "en" ? "Email:" : "Email:"} *</label>
+                <label htmlFor="order-customerEmail">{language === "bg" ? "Email:" : language === "en" ? "Email:" : "Email:"} *</label>
                 <input
+                  id="order-customerEmail"
+                  name="customerEmail"
                   type="email"
                   value={customerEmail}
                   onChange={(e) => onCustomerEmailChange(e.target.value)}
@@ -189,8 +195,10 @@ export function ItemDetail({
               </div>
               
               <div className="form-group">
-                <label>{t.paymentMethod}</label>
+                <label htmlFor="order-paymentMethod">{t.paymentMethod}</label>
                 <select
+                  id="order-paymentMethod"
+                  name="paymentMethod"
                   value={paymentMethod}
                   onChange={(e) => onPaymentMethodChange(e.target.value)}
                   required
@@ -201,8 +209,10 @@ export function ItemDetail({
                 </select>
               </div>
               <div className="form-group">
-                <label>{t.deliveryCourier}</label>
+                <label htmlFor="order-deliveryCourier">{t.deliveryCourier}</label>
                 <select
+                  id="order-deliveryCourier"
+                  name="deliveryCourier"
                   value={(deliveryMethod && deliveryMethod.includes("_")) ? deliveryMethod.split("_")[0] : deliveryMethod || ""}
                   onChange={(e) => {
                     const courier = e.target.value;
@@ -222,8 +232,10 @@ export function ItemDetail({
               </div>
               {deliveryMethod && (deliveryMethod.startsWith("speedy") || deliveryMethod.startsWith("econt")) && (
                 <div className="form-group">
-                  <label>{t.deliveryType}</label>
+                  <label htmlFor="order-deliveryType">{t.deliveryType}</label>
                   <select
+                    id="order-deliveryType"
+                    name="deliveryType"
                     value={deliveryMethod.includes("office") ? "office" : "address"}
                     onChange={(e) => {
                       const type = e.target.value;
@@ -239,8 +251,10 @@ export function ItemDetail({
               )}
               <p className="delivery-note">{t.deliveryNote}</p>
               <div className="form-group">
-                <label>{deliveryMethod.includes("office") ? t.deliveryOfficeInfo : t.deliveryAddress}</label>
+                <label htmlFor="order-deliveryAddress">{deliveryMethod.includes("office") ? t.deliveryOfficeInfo : t.deliveryAddress}</label>
                 <textarea
+                  id="order-deliveryAddress"
+                  name="deliveryAddress"
                   value={deliveryAddress}
                   onChange={(e) => onDeliveryAddressChange(e.target.value)}
                   placeholder={deliveryMethod.includes("office") ? t.deliveryOfficePlaceholder : t.deliveryAddressPlaceholder}
@@ -289,8 +303,10 @@ export function ItemDetail({
           {/* Качване на снимка */}
           {item.ownerEmail && item.ownerEmail === loggedInEmail && (
             <div className="upload-section">
-              <h3>{t.uploadImage}</h3>
-              <input type="file" onChange={onFileChange} />
+              <label htmlFor="detail-upload-image">
+                <h3>{t.uploadImage}</h3>
+              </label>
+              <input id="detail-upload-image" name="image" type="file" accept="image/*" onChange={onFileChange} aria-label={t.uploadImage} />
               <button className="btn-secondary" onClick={onUpload} disabled={!file}>
                 {t.upload}
               </button>
@@ -333,8 +349,10 @@ export function ItemDetail({
             {item.ownerEmail !== loggedInEmail && (
               <form onSubmit={onAddReview} className="review-form">
                 <div className="form-group">
-                  <label>{t.rating}</label>
+                  <label htmlFor="review-rating">{t.rating}</label>
                   <input
+                    id="review-rating"
+                    name="rating"
                     type="number"
                     min={1}
                     max={5}
@@ -344,8 +362,10 @@ export function ItemDetail({
                   />
                 </div>
                 <div className="form-group">
-                  <label>{t.comment}</label>
+                  <label htmlFor="review-comment">{t.comment}</label>
                   <textarea
+                    id="review-comment"
+                    name="comment"
                     value={reviewComment}
                     onChange={(e) => onReviewCommentChange(e.target.value)}
                     rows={3}

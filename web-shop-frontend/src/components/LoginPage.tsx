@@ -33,11 +33,13 @@ export function LoginPage({
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleLogin} className="auth-form">
         <div className="form-group">
-          <label>
+          <label htmlFor="login-email">
             <span className="label-icon">📧</span>
             {t.email}:
           </label>
           <input
+            id="login-email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -49,11 +51,13 @@ export function LoginPage({
           />
         </div>
         <div className="form-group">
-          <label>
+          <label htmlFor="login-password">
             <span className="label-icon">🔒</span>
             {t.password}:
           </label>
           <input
+            id="login-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

@@ -50,8 +50,10 @@ export function AuthSection({
       <form onSubmit={handleLogin} className="auth-form">
         <h3>Вход</h3>
         <div className="form-group">
-          <label>Email:</label>
+          <label htmlFor="auth-login-email">Email:</label>
           <input
+            id="auth-login-email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -59,8 +61,10 @@ export function AuthSection({
           />
         </div>
         <div className="form-group">
-          <label>Парола:</label>
+          <label htmlFor="auth-login-password">Парола:</label>
           <input
+            id="auth-login-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -75,8 +79,10 @@ export function AuthSection({
       <form onSubmit={handleRegister} className="auth-form">
         <h3>Регистрация</h3>
         <div className="form-group">
-          <label>Пълно име:</label>
+          <label htmlFor="auth-reg-fullName">Пълно име:</label>
           <input
+            id="auth-reg-fullName"
+            name="fullName"
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -84,8 +90,10 @@ export function AuthSection({
           />
         </div>
         <div className="form-group">
-          <label>Email:</label>
+          <label htmlFor="auth-reg-email">Email:</label>
           <input
+            id="auth-reg-email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -93,8 +101,10 @@ export function AuthSection({
           />
         </div>
         <div className="form-group">
-          <label>Парола:</label>
+          <label htmlFor="auth-reg-password">Парола:</label>
           <input
+            id="auth-reg-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

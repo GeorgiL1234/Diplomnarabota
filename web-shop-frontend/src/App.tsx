@@ -150,7 +150,7 @@ function App() {
     const useFull = API_BASE.includes("localhost");
     const listUrl = useFull ? `${API_BASE}/items` : `${API_BASE}/items/list`;
 
-    tryFetch(listUrl)
+    tryFetch(`${listUrl}?t=${Date.now()}`)
       .catch((err) => {
         if (!useFull && (err?.status === 400 || err?.status === 404)) {
           return tryFetch(`${API_BASE}/items`);
@@ -166,10 +166,15 @@ function App() {
           return 0;
         });
         setItems(sortedData);
-        if (selectedItem) {
-          const updated = sortedData.find((it: Item) => it.id === selectedItem.id) || null;
-          setSelectedItem(updated);
-        }
+        setSelectedItem((prev) => {
+          if (!prev) return prev;
+          const updated = sortedData.find((it: Item) => it.id === prev.id);
+          if (updated) {
+            // Запази imageUrl – списъкът (/list) не го връща, иначе губим снимката след create
+            return { ...updated, imageUrl: updated.imageUrl || prev.imageUrl };
+          }
+          return prev; // Не нулирай – item-ът може да още не е в списъка
+        });
       })
       .catch((err) => setError(err?.message || String(err)));
   };
@@ -761,6 +766,12 @@ function App() {
             createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
               cache: "no-store",
             }).then((r) => r.json());
+            // GET /items/{id} вече не връща imageUrl – взимаме от отделен endpoint
+            const imgRes = await fetch(`${API_BASE}/items/${createdItem.id}/image?t=${Date.now()}`);
+            if (imgRes.ok) {
+              const imgData = await imgRes.json();
+              if (imgData?.imageUrl) createdItem = { ...createdItem, imageUrl: imgData.imageUrl };
+            }
           } else {
             const errText = await uploadRes.text();
             console.warn("Upload failed:", uploadRes.status, errText);
@@ -1597,10 +1608,21 @@ function App() {
         const errorText = await res.text();
         throw new Error(errorText || t.errorUploadImage);
       }
-      await res.text(); // "UPLOAD_OK"
       setMessage(t.successImageUploaded);
       setFile(null);
       loadItems();
+      // Обнови selectedItem със снимката – иначе остава placeholder
+      try {
+        const imgRes = await fetch(`${API_BASE}/items/${selectedItem.id}/image?t=${Date.now()}`);
+        if (imgRes.ok) {
+          const imgData = await imgRes.json();
+          if (imgData?.imageUrl) {
+            setSelectedItem((prev) => prev ? { ...prev, imageUrl: imgData.imageUrl } : prev);
+          }
+        }
+      } catch {
+        // Игнорирай – снимката е качена, може да се види при следващо отваряне
+      }
     } catch (err) {
       setError(String(err));
     }
@@ -1849,9 +1871,11 @@ function App() {
             {/* Филтър по категория - скрит когато формата за създаване е отворена */}
             {!showCreateForm && (
               <div className="category-filter">
-                <label>
+                <label htmlFor="main-category-filter">
                   <strong>{t.category}</strong>
                   <select
+                    id="main-category-filter"
+                    name="category"
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                   >

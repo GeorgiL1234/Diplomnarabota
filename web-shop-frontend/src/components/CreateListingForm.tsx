@@ -75,8 +75,10 @@ export function CreateListingForm({
       <div className="form-header-icon">➕</div>
       <h3>{t.createNewListing}</h3>
       <div className="form-group">
-        <label>{t.title}</label>
+        <label htmlFor="create-title">{t.title}</label>
         <input
+          id="create-title"
+          name="title"
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
@@ -85,8 +87,10 @@ export function CreateListingForm({
         />
       </div>
       <div className="form-group">
-        <label>{t.description} * ({language === "bg" ? "мин. 40 символа" : language === "en" ? "min 40 chars" : "мин. 40 символов"})</label>
+        <label htmlFor="create-description">{t.description} * ({language === "bg" ? "мин. 40 символа" : language === "en" ? "min 40 chars" : "мин. 40 символов"})</label>
         <textarea
+          id="create-description"
+          name="description"
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
           required
@@ -98,8 +102,10 @@ export function CreateListingForm({
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label>{t.price}</label>
+          <label htmlFor="create-price">{t.price}</label>
           <input
+            id="create-price"
+            name="price"
             type="number"
             step="0.01"
             value={price}
@@ -109,8 +115,8 @@ export function CreateListingForm({
           />
         </div>
         <div className="form-group">
-          <label>{t.category}</label>
-          <select value={category} onChange={(e) => onCategoryChange(e.target.value)} disabled={isCreating}>
+          <label htmlFor="create-category">{t.category}</label>
+          <select id="create-category" name="category" value={category} onChange={(e) => onCategoryChange(e.target.value)} disabled={isCreating}>
             {CATEGORIES.filter((c) => c !== "Всички").map((cat) => (
               <option key={cat} value={cat}>
                 {getCategoryLabel(cat, t)}
@@ -124,8 +130,10 @@ export function CreateListingForm({
           {t.contactRequired}
         </p>
         <div className="form-group">
-          <label>{t.contactEmail}</label>
+          <label htmlFor="create-contactEmail">{t.contactEmail}</label>
           <input
+            id="create-contactEmail"
+            name="contactEmail"
             type="email"
             value={contactEmail}
             onChange={(e) => onContactEmailChange(e.target.value)}
@@ -139,8 +147,10 @@ export function CreateListingForm({
           )}
         </div>
         <div className="form-group">
-          <label>{t.contactPhone}</label>
+          <label htmlFor="create-contactPhone">{t.contactPhone}</label>
           <input
+            id="create-contactPhone"
+            name="contactPhone"
             type="tel"
             value={contactPhone}
             onChange={(e) => onContactPhoneChange(e.target.value)}
@@ -155,15 +165,17 @@ export function CreateListingForm({
         </div>
       </div>
       <div className="form-group">
-        <label>{t.paymentMethod}</label>
-        <select value={paymentMethod} onChange={(e) => onPaymentMethodChange(e.target.value)} disabled={isCreating}>
+        <label htmlFor="create-paymentMethod">{t.paymentMethod}</label>
+        <select id="create-paymentMethod" name="paymentMethod" value={paymentMethod} onChange={(e) => onPaymentMethodChange(e.target.value)} disabled={isCreating}>
           <option value="cash_on_delivery">{t.paymentCashOnDelivery}</option>
           <option value="bank_transfer">{t.paymentBankTransfer}</option>
         </select>
       </div>
       <div className="form-group vip-checkbox-group">
-        <label className="vip-checkbox-label">
+        <label htmlFor="create-isVip" className="vip-checkbox-label">
           <input
+            id="create-isVip"
+            name="isVip"
             type="checkbox"
             checked={isVip}
             onChange={(e) => onVipChange(e.target.checked)}
@@ -174,8 +186,10 @@ export function CreateListingForm({
         </label>
       </div>
       <div className="form-group">
-        <label>{t.image} *</label>
+        <label htmlFor="create-image">{t.image} *</label>
         <input
+          id="create-image"
+          name="image"
           ref={fileInputRef}
           type="file"
           accept="image/*"

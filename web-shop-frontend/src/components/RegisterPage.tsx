@@ -37,11 +37,13 @@ export function RegisterPage({
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleRegister} className="auth-form">
         <div className="form-group">
-          <label>
+          <label htmlFor="register-fullName">
             <span className="label-icon">👤</span>
             {t.fullName}:
           </label>
           <input
+            id="register-fullName"
+            name="fullName"
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -53,11 +55,13 @@ export function RegisterPage({
           />
         </div>
         <div className="form-group">
-          <label>
+          <label htmlFor="register-email">
             <span className="label-icon">📧</span>
             {t.email}:
           </label>
           <input
+            id="register-email"
+            name="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -69,11 +73,13 @@ export function RegisterPage({
           />
         </div>
         <div className="form-group">
-          <label>
+          <label htmlFor="register-password">
             <span className="label-icon">🔒</span>
             {t.password}:
           </label>
           <input
+            id="register-password"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

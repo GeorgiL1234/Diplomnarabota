@@ -209,9 +209,12 @@ export function Header({
               </button>
             )}
             <select
+              id="header-language-desktop"
+              name="language"
               className="language-selector"
               value={language}
               onChange={(e) => setLanguage(e.target.value as LangType)}
+              aria-label={t.language || "Language"}
             >
               <option value="bg">🇧🇬 БГ</option>
               <option value="en">🇬🇧 EN</option>
@@ -318,9 +321,12 @@ export function Header({
             )}
             <div className="mobile-nav-language">
               <select
+                id="header-language-mobile"
+                name="language"
                 className="language-selector mobile"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as LangType)}
+                aria-label={t.language || "Language"}
               >
                 <option value="bg">🇧🇬 БГ</option>
                 <option value="en">🇬🇧 EN</option>

@@ -227,10 +227,12 @@ export function VipPaymentForm({
           </div>
 
           <div className="form-group" style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+            <label htmlFor="vip-cardNumber" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
               {language === "bg" ? "Номер на карта:" : language === "en" ? "Card Number:" : "Номер карты:"} *
             </label>
             <input
+              id="vip-cardNumber"
+              name="cardNumber"
               type="text"
               value={cardNumber}
               onChange={(e) => {
@@ -254,10 +256,12 @@ export function VipPaymentForm({
           </div>
 
           <div className="form-group" style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+            <label htmlFor="vip-cardHolder" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
               {language === "bg" ? "Име на картодържателя:" : language === "en" ? "Cardholder Name:" : "Имя держателя карты:"} *
             </label>
             <input
+              id="vip-cardHolder"
+              name="cardHolder"
               type="text"
               value={cardHolder}
               onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
@@ -278,10 +282,12 @@ export function VipPaymentForm({
 
           <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
             <div className="form-group" style={{ flex: 1 }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+              <label htmlFor="vip-expiryDate" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
                 {language === "bg" ? "Дата на изтичане:" : language === "en" ? "Expiry Date:" : "Срок действия:"} *
               </label>
               <input
+                id="vip-expiryDate"
+                name="expiryDate"
                 type="text"
                 value={expiryDate}
                 onChange={(e) => {
@@ -304,10 +310,12 @@ export function VipPaymentForm({
               />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+              <label htmlFor="vip-cvv" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
                 CVV *
               </label>
               <input
+                id="vip-cvv"
+                name="cvv"
                 type="text"
                 value={cvv}
                 onChange={(e) => {

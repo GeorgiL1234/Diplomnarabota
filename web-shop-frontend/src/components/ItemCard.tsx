@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import type { Item } from "../types";
-import { getImageUrl } from "../config";
+import { getImageUrl, API_BASE } from "../config";
 import { translations, getCategoryLabel, type Language } from "../translations";
+
+const PLACEHOLDER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
 
 type ItemCardProps = {
   item: Item;
@@ -10,11 +13,26 @@ type ItemCardProps = {
 
 export function ItemCard({ item, language, onClick }: ItemCardProps) {
   const t = translations[language] || translations["bg"];
-  
-  // Placeholder image if no image
-  const imageUrl = item.imageUrl 
-    ? getImageUrl(item.imageUrl) 
-    : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
+  const [imageUrl, setImageUrl] = useState<string>(
+    item.imageUrl ? getImageUrl(item.imageUrl) : PLACEHOLDER_SVG
+  );
+
+  // Lazy-load снимка от /items/{id}/image когато списъкът не я има (от /list)
+  useEffect(() => {
+    if (item.imageUrl) {
+      setImageUrl(getImageUrl(item.imageUrl));
+      return;
+    }
+    if (!item.id) return;
+    let cancelled = false;
+    fetch(`${API_BASE}/items/${item.id}/image?t=${Date.now()}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.imageUrl) setImageUrl(getImageUrl(data.imageUrl));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [item.id, item.imageUrl]);
   
   return (
     <div className="item-card" onClick={onClick}>
@@ -25,8 +43,7 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
           alt={item.title}
           className="item-image"
           onError={(e) => {
-            // Fallback to placeholder on error
-            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
+            e.currentTarget.src = PLACEHOLDER_SVG;
           }}
         />
         <div className="item-image-overlay">

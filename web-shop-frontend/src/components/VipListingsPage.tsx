@@ -38,9 +38,11 @@ export function VipListingsPage({
         </div>
 
         <div className="category-filter">
-          <label>
+          <label htmlFor="vip-category-filter">
             <strong>{t.category}</strong>
             <select
+              id="vip-category-filter"
+              name="category"
               value={selectedCategory}
               onChange={(e) => onCategoryChange(e.target.value)}
             >

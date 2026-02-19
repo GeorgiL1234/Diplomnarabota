@@ -54,10 +54,12 @@ export function MessagesPage({
             <h3>{t.askQuestion}</h3>
             <form onSubmit={onSendQuestion} className="question-form">
               <div className="form-group">
-                <label>
+                <label htmlFor="message-question">
                   {t.listingTitle} {selectedItem.title}
                 </label>
                 <textarea
+                  id="message-question"
+                  name="question"
                   value={newQuestion}
                   onChange={(e) => onQuestionChange(e.target.value)}
                   placeholder={t.questionPlaceholder}
@@ -225,7 +227,10 @@ export function MessagesPage({
                     </div>
                   ) : (
                     <div className="message-answer-form">
+                      <label htmlFor={`message-answer-${msg.id}`} className="sr-only">{t.answerPlaceholder}</label>
                       <textarea
+                        id={`message-answer-${msg.id}`}
+                        name="answer"
                         value={newAnswer[msg.id] || ""}
                         onChange={(e) => onAnswerChange(msg.id, e.target.value)}
                         placeholder={t.answerPlaceholder}
