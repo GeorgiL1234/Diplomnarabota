@@ -69,7 +69,7 @@ export function Header({
           >
             <span className="logo-icon-large">🛍️</span>
             Web Shop
-            <span style={{ fontSize: "0.5em", opacity: 0.7, marginLeft: "4px" }} title="Build 19.02.2026 – image + My ads fix">v3</span>
+            <span style={{ fontSize: "0.5em", opacity: 0.7, marginLeft: "4px" }} title="Design v4 – 20.02.2026">v4</span>
           </h1>
         </div>
         
