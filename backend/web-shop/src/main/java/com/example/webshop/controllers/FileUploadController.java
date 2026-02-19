@@ -171,8 +171,8 @@ public class FileUploadController {
                 // Spring ще направи flush автоматично при commit на транзакцията
                 Item savedItem;
                 try {
-                    // Опитваме се да запазим item-а
-                    savedItem = itemRepository.save(item);
+                    // saveAndFlush – гарантира запис преди response (важно за Render + frontend retry)
+                    savedItem = itemRepository.saveAndFlush(item);
                     System.out.println("Item saved successfully with ID: " + savedItem.getId());
                     
                     // Проверяваме дали imageUrl е запазен правилно
@@ -257,7 +257,7 @@ public class FileUploadController {
 
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("{\"status\":\"success\",\"message\":\"Image uploaded successfully\"}");
+                    .body("{\"status\":\"success\",\"message\":\"Image uploaded successfully\",\"imageAvailable\":true,\"itemId\":" + itemId + "}");
         } catch (RuntimeException e) {
             System.out.println("RUNTIME ERROR in upload: " + e.getMessage());
             e.printStackTrace();

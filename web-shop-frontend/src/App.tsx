@@ -764,21 +764,24 @@ function App() {
             body: formData,
           });
           if (uploadRes.ok) {
-            createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
-              cache: "no-store",
-            }).then((r) => r.json());
-            // Retry: Render транзакцията може да не е комитната веднага
-            let imgData: { imageUrl?: string } | null = null;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              const imgRes = await fetch(`${API_BASE}/items/${createdItem.id}/image?t=${Date.now()}`);
-              if (imgRes.ok) {
-                imgData = await imgRes.json();
-                if (imgData?.imageUrl) break;
+            const uploadJson = await uploadRes.json().catch(() => ({}));
+            if (uploadJson?.imageAvailable && createdItem?.id) {
+              createdItem = { ...createdItem, imageUrl: `${API_BASE}/items/${createdItem.id}/image/raw` };
+            } else {
+              createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
+                cache: "no-store",
+              }).then((r) => r.json());
+              let imgData: { imageUrl?: string } | null = null;
+              for (let attempt = 0; attempt < 3; attempt++) {
+                const imgRes = await fetch(`${API_BASE}/items/${createdItem.id}/image?t=${Date.now()}`);
+                if (imgRes.ok) {
+                  imgData = await imgRes.json();
+                  if (imgData?.imageUrl) break;
+                }
+                if (attempt < 2) await new Promise((r) => setTimeout(r, 600));
               }
-              if (attempt < 2) await new Promise((r) => setTimeout(r, 600));
+              if (imgData?.imageUrl) createdItem = { ...createdItem, imageUrl: imgData.imageUrl };
             }
-            if (imgData?.imageUrl) createdItem = { ...createdItem, imageUrl: imgData.imageUrl };
-            else console.warn("Upload OK but imageUrl still null after retries – backend may need more time");
           } else {
             const errText = await uploadRes.text();
             console.warn("Upload failed:", uploadRes.status, errText);
