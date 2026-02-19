@@ -214,7 +214,7 @@ export function Header({
               className="language-selector"
               value={language}
               onChange={(e) => setLanguage(e.target.value as LangType)}
-              aria-label={t.language || "Language"}
+              aria-label="Language"
             >
               <option value="bg">🇧🇬 БГ</option>
               <option value="en">🇬🇧 EN</option>
@@ -326,7 +326,7 @@ export function Header({
                 className="language-selector mobile"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as LangType)}
-                aria-label={t.language || "Language"}
+                aria-label="Language"
               >
                 <option value="bg">🇧🇬 БГ</option>
                 <option value="en">🇬🇧 EN</option>
