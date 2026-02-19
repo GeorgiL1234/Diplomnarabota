@@ -69,7 +69,7 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
         <p className="item-description">{item.description}</p>
         <div className="item-footer">
           <div className="item-price-wrapper">
-            <span className="item-price">{item.price.toFixed(2)}</span>
+            <span className="item-price">{Number(item?.price ?? 0).toFixed(2)}</span>
             <span className="item-currency">{t.currency}</span>
           </div>
           {item.category && (

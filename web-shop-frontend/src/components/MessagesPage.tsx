@@ -123,7 +123,7 @@ export function MessagesPage({
                           <h4>{msg.item.title}</h4>
                           <p className="listing-card-description">{msg.item.description}</p>
                           <p className="listing-card-price">
-                            {t.priceLabel}: {msg.item.price.toFixed(2)} {t.currency}
+                            {t.priceLabel}: {Number(msg.item?.price ?? 0).toFixed(2)} {t.currency}
                           </p>
                           <button className="btn-secondary" onClick={() => onViewItem(msg.item!)}>
                             {t.viewListing}
@@ -200,7 +200,7 @@ export function MessagesPage({
                           <h4>{msg.item.title}</h4>
                           <p className="listing-card-description">{msg.item.description}</p>
                           <p className="listing-card-price">
-                            {t.priceLabel}: {msg.item.price.toFixed(2)} {t.currency}
+                            {t.priceLabel}: {Number(msg.item?.price ?? 0).toFixed(2)} {t.currency}
                           </p>
                           <button className="btn-secondary" onClick={() => onViewItem(msg.item!)}>
                             {t.viewListing}

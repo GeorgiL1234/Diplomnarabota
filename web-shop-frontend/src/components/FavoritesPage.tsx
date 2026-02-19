@@ -43,7 +43,7 @@ export function FavoritesPage({
                   <div className="item-info">
                     <h3 onClick={() => onItemClick(item)}>{item.title}</h3>
                     <p className="item-price">
-                      {item.price.toFixed(2)} {t.currency}
+                      {Number(item?.price ?? 0).toFixed(2)} {t.currency}
                     </p>
                     <p className="item-category">{item.category}</p>
                     <button

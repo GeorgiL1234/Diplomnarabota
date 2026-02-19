@@ -799,9 +799,14 @@ function App() {
       setShowCreateForm(false);
       
       // Оптимистично добави в списъка
+      const safeItem: Item = {
+        ...createdItem,
+        id: Number(createdItem?.id) || 0,
+        price: Number(createdItem?.price) || 0,
+      };
       setItems((prev) => {
-        if (prev.some((it) => it.id === createdItem.id)) return prev;
-        const next = [...prev, { ...createdItem, ownerEmail: createdItem.ownerEmail || loggedInEmail }];
+        if (prev.some((it) => it.id === safeItem.id)) return prev;
+        const next = [...prev, { ...safeItem, ownerEmail: safeItem.ownerEmail || loggedInEmail }];
         return next.sort((a, b) => {
           const aVip = a.isVip === true;
           const bVip = b.isVip === true;
@@ -810,7 +815,7 @@ function App() {
           return 0;
         });
       });
-      setSelectedItem(createdItem);
+      setSelectedItem(safeItem);
       setReviews([]);
       setView("detail");
       setMessage(uploadFailed
@@ -818,8 +823,8 @@ function App() {
         : t.successListingCreated);
       
       // Ако е избрано VIP, покажи форма за плащане
-      if (shouldMakeVip && createdItem.id) {
-        setPendingVipItemId(createdItem.id);
+      if (shouldMakeVip && safeItem.id) {
+        setPendingVipItemId(safeItem.id);
         setShowVipPayment(true);
       }
       // Снимката се качва отделно след create (multipart upload)
