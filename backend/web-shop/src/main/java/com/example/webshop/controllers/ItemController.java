@@ -131,7 +131,7 @@ public class ItemController {
             try {
                 int comma = url.indexOf(',');
                 if (comma < 0) return ResponseEntity.badRequest().build();
-                String base64 = url.substring(comma + 1);
+                String base64 = url.substring(comma + 1).replaceAll("\\s", "");
                 byte[] bytes = Base64.getDecoder().decode(base64);
                 if (bytes == null || bytes.length == 0) return ResponseEntity.notFound().build();
                 String mime = "image/jpeg";

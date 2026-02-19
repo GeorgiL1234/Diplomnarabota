@@ -16,10 +16,12 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
   const [imageUrl, setImageUrl] = useState<string>(
     item.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id) || PLACEHOLDER_SVG : PLACEHOLDER_SVG
   );
+  const [dataUriFallback, setDataUriFallback] = useState<string | null>(null);
 
   // Lazy-load снимка – за base64 използваме /image/raw (избягва големи JSON)
   useEffect(() => {
     if (item.imageUrl) {
+      setDataUriFallback(item.imageUrl.startsWith("data:") ? item.imageUrl : null);
       setImageUrl(getDisplayImageUrl(item.imageUrl, item.id) || PLACEHOLDER_SVG);
       return;
     }
@@ -29,11 +31,20 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data?.imageUrl) return;
+        setDataUriFallback(data.imageUrl.startsWith("data:") ? data.imageUrl : null);
         setImageUrl(getDisplayImageUrl(data.imageUrl, item.id) || PLACEHOLDER_SVG);
       })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [item.id, item.imageUrl]);
+  
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (dataUriFallback && dataUriFallback.length < 500000) {
+      e.currentTarget.src = dataUriFallback;
+    } else {
+      e.currentTarget.src = PLACEHOLDER_SVG;
+    }
+  }
   
   return (
     <div className="item-card" onClick={onClick}>
@@ -43,9 +54,7 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
           src={imageUrl}
           alt={item.title}
           className="item-image"
-          onError={(e) => {
-            e.currentTarget.src = PLACEHOLDER_SVG;
-          }}
+          onError={handleImageError}
         />
         <div className="item-image-overlay">
           <span className="view-details-icon">👁️</span>

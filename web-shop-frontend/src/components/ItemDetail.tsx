@@ -78,6 +78,7 @@ export function ItemDetail({
   const t = translations[language];
 
   const imageSrc = item?.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id ?? undefined) : null;
+  const dataUriFallback = item?.imageUrl?.startsWith("data:") && (item.imageUrl?.length ?? 0) < 500000 ? item.imageUrl : null;
   const placeholderSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
 
   return (
@@ -94,7 +95,7 @@ export function ItemDetail({
               alt={item.title || ""}
               className="item-detail-image"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              onError={(e) => { e.currentTarget.src = placeholderSvg; }}
+              onError={(e) => { e.currentTarget.src = dataUriFallback || placeholderSvg; }}
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
