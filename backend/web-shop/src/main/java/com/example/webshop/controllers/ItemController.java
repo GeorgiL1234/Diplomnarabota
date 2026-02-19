@@ -146,6 +146,9 @@ public class ItemController {
                 return ResponseEntity.notFound().build();
             }
         }
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(url)).build();
+        }
         return ResponseEntity.notFound().build();
     }
 

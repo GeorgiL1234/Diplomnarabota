@@ -30,6 +30,7 @@ export function Header({
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -37,13 +38,15 @@ export function Header({
       const inMenu = menuRef.current?.contains(target);
       const inUserMenu = userMenuRef.current?.contains(target);
       const inMobileBtn = mobileMenuBtnRef.current?.contains(target);
-      if (!inMenu && !inUserMenu && !inMobileBtn) {
+      const inMobileNav = mobileNavRef.current?.contains(target);
+      if (!inMenu && !inUserMenu && !inMobileBtn && !inMobileNav) {
         setIsMenuOpen(false);
         setIsUserMenuOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    // Използваме 'click' + capture – на мобилни tap се обработва по-надеждно; capture гарантира, че nav е още в DOM
+    document.addEventListener("click", handleClickOutside, true);
+    return () => document.removeEventListener("click", handleClickOutside, true);
   }, []);
 
   const handleViewChange = (newView: View) => {
@@ -235,7 +238,7 @@ export function Header({
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <nav className="app-nav mobile-nav">
+          <nav ref={mobileNavRef} className="app-nav mobile-nav">
             {!loggedInEmail && (
               <>
                 <button

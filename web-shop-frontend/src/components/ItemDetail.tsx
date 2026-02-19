@@ -1,8 +1,9 @@
+import { useState, useEffect } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import type { Item, Review } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
-import { getDisplayImageUrl } from "../config";
+import { getDisplayImageUrl, API_BASE } from "../config";
 
 type ItemDetailProps = {
   item: Item;
@@ -76,10 +77,47 @@ export function ItemDetail({
   onGoToMessages,
 }: ItemDetailProps) {
   const t = translations[language];
-
-  const imageSrc = item?.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id ?? undefined) : null;
-  const dataUriFallback = item?.imageUrl?.startsWith("data:") && (item.imageUrl?.length ?? 0) < 500000 ? item.imageUrl : null;
   const placeholderSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
+
+  const initialSrc = item?.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id ?? undefined) : (item?.id ? `${API_BASE}/items/${item.id}/image/raw?t=${Date.now()}` : null);
+  const [imageSrc, setImageSrc] = useState<string>(initialSrc || placeholderSvg);
+  const dataUriFallback = item?.imageUrl?.startsWith("data:") && (item.imageUrl?.length ?? 0) < 500000 ? item.imageUrl : null;
+
+  useEffect(() => {
+    const src = item?.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id ?? undefined) : (item?.id ? `${API_BASE}/items/${item.id}/image/raw?t=${Date.now()}` : null);
+    if (src) setImageSrc(src);
+    else setImageSrc(placeholderSvg);
+  }, [item?.id, item?.imageUrl]);
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (!img) return;
+    if (dataUriFallback && dataUriFallback.length < 500000) {
+      setImageSrc(dataUriFallback);
+      return;
+    }
+    if ((imageSrc.includes("/image/raw") || imageSrc.includes("/image")) && item?.id) {
+      fetch(`${API_BASE}/items/${item.id}/image?t=${Date.now()}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!img.isConnected) return;
+          if (!data?.imageUrl) {
+            setImageSrc(placeholderSvg);
+            return;
+          }
+          if (data.imageUrl.startsWith("http")) {
+            setImageSrc(data.imageUrl);
+          } else if (data.imageUrl.startsWith("data:") && data.imageUrl.length < 500000) {
+            setImageSrc(data.imageUrl);
+          } else {
+            setImageSrc(placeholderSvg);
+          }
+        })
+        .catch(() => { if (img.isConnected) setImageSrc(placeholderSvg); });
+    } else {
+      setImageSrc(placeholderSvg);
+    }
+  };
 
   return (
     <section className="detail-view-section" key={`detail-${item.id}`}>
@@ -91,11 +129,11 @@ export function ItemDetail({
           {/* Снимка на обявата – винаги показваме (снимка или placeholder) */}
           <div className="item-detail-image-wrapper" style={{ marginBottom: "20px", borderRadius: "12px", overflow: "hidden", maxWidth: "100%", aspectRatio: "16/10", background: "#f1f5f9" }}>
             <img
-              src={imageSrc || placeholderSvg}
+              src={imageSrc}
               alt={item.title || ""}
               className="item-detail-image"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              onError={(e) => { if (e.currentTarget) e.currentTarget.src = dataUriFallback || placeholderSvg; }}
+              onError={handleImageError}
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
