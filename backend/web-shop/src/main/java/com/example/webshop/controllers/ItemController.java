@@ -119,14 +119,36 @@ public class ItemController {
         return ResponseEntity.ok(java.util.Map.of("imageUrl", item.getImageUrl()));
     }
 
-    /** Raw bytes – за base64 снимки (user upload). Избягва големи JSON отговори */
-    @GetMapping("/{id:[0-9]+}/image/raw")
-    public ResponseEntity<byte[]> getImageRaw(@PathVariable Long id) {
+    /** Брой снимки – за галерия без зареждане на целия imageUrl */
+    @GetMapping("/{id:[0-9]+}/image/count")
+    public ResponseEntity<java.util.Map<String, Integer>> getImageCount(@PathVariable Long id) {
         Item item = itemService.getById(id);
-        String url = item.getImageUrl();
-        if (url == null || url.isEmpty()) {
+        if (item.getImageUrl() == null || item.getImageUrl().isEmpty()) {
+            return ResponseEntity.ok(java.util.Map.of("count", 0));
+        }
+        String[] parts = item.getImageUrl().split(java.util.regex.Pattern.quote(IMG_DELIM));
+        int count = 0;
+        for (String p : parts) {
+            if (p != null && !p.trim().isEmpty()) count++;
+        }
+        return ResponseEntity.ok(java.util.Map.of("count", Math.max(1, count)));
+    }
+
+    private static final String IMG_DELIM = "|||";
+
+    /** Raw bytes – за base64 снимки (user upload). ?index=0,1,2 за множество снимки */
+    @GetMapping("/{id:[0-9]+}/image/raw")
+    public ResponseEntity<byte[]> getImageRaw(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "0") int index) {
+        Item item = itemService.getById(id);
+        String raw = item.getImageUrl();
+        if (raw == null || raw.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        String[] parts = raw.split(java.util.regex.Pattern.quote(IMG_DELIM));
+        String url = (index >= 0 && index < parts.length) ? parts[index].trim() : parts[0].trim();
+        if (url.isEmpty()) return ResponseEntity.notFound().build();
         if (url.startsWith("data:")) {
             try {
                 int comma = url.indexOf(',');

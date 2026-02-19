@@ -42,12 +42,15 @@ public class FileUploadController {
         this.itemRepository = itemRepository;
     }
 
+    private static final String IMG_DELIM = "|||";
+
     @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(timeout = 60) // Увеличаваме timeout до 60 секунди за големи файлове
+    @Transactional(timeout = 60)
     public ResponseEntity<?> uploadImage(
             @PathVariable Long itemId,
             @RequestParam(value = "file") MultipartFile file,
-            @RequestParam(value = "ownerEmail") String ownerEmail) {
+            @RequestParam(value = "ownerEmail") String ownerEmail,
+            @RequestParam(value = "append", required = false, defaultValue = "false") boolean append) {
 
         System.out.println("========================================");
         System.out.println(">>> UPLOAD ENDPOINT CALLED <<<");
@@ -161,9 +164,15 @@ public class FileUploadController {
             }
             
             try {
-                System.out.println("Setting image URL on item (length: " + dataUri.length() + " chars)...");
-                
-                item.setImageUrl(dataUri);
+                String newImageUrl;
+                if (append && item.getImageUrl() != null && !item.getImageUrl().trim().isEmpty()) {
+                    newImageUrl = item.getImageUrl().trim() + IMG_DELIM + dataUri;
+                    System.out.println("Appending image to existing (total length: " + newImageUrl.length() + " chars)");
+                } else {
+                    newImageUrl = dataUri;
+                    System.out.println("Setting image URL on item (length: " + dataUri.length() + " chars)...");
+                }
+                item.setImageUrl(newImageUrl);
                 System.out.println("Image URL set on item");
                 
                 System.out.println("Saving item to repository with save()...");

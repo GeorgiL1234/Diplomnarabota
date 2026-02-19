@@ -3,7 +3,7 @@ import type { FormEvent, ChangeEvent } from "react";
 import type { Item, Review } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
-import { getDisplayImageUrl, API_BASE } from "../config";
+import { getDisplayImageUrl, parseImageUrls, API_BASE } from "../config";
 
 type ItemDetailProps = {
   item: Item;
@@ -79,15 +79,36 @@ export function ItemDetail({
   const t = translations[language];
   const placeholderSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
 
-  const initialSrc = item?.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id ?? undefined) : (item?.id ? `${API_BASE}/items/${item.id}/image/raw?t=${Date.now()}` : null);
-  const [imageSrc, setImageSrc] = useState<string>(initialSrc || placeholderSvg);
+  const imageUrls = parseImageUrls(item?.imageUrl);
+  const [fetchedImageCount, setFetchedImageCount] = useState<number | null>(null);
+  const imageCount = imageUrls.length > 0 ? imageUrls.length : (fetchedImageCount ?? 1);
+  const hasMultipleImages = imageCount > 1;
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!item?.id || imageUrls.length > 0) return;
+    fetch(`${API_BASE}/items/${item.id}/image/count?t=${Date.now()}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.count != null && data.count > 1) setFetchedImageCount(data.count);
+      })
+      .catch(() => {});
+  }, [item?.id, imageUrls.length]);
+
+  const [imageSrc, setImageSrc] = useState<string>(placeholderSvg);
   const dataUriFallback = item?.imageUrl?.startsWith("data:") && (item.imageUrl?.length ?? 0) < 500000 ? item.imageUrl : null;
 
   useEffect(() => {
-    const src = item?.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id ?? undefined) : (item?.id ? `${API_BASE}/items/${item.id}/image/raw?t=${Date.now()}` : null);
-    if (src) setImageSrc(src);
-    else setImageSrc(placeholderSvg);
-  }, [item?.id, item?.imageUrl]);
+    let src: string | null = null;
+    if (hasMultipleImages && item?.id != null) {
+      src = `${API_BASE}/items/${item.id}/image/raw?index=${selectedImageIndex}&t=${Date.now()}`;
+    } else if (item?.imageUrl) {
+      src = getDisplayImageUrl(item.imageUrl, item.id ?? undefined, 0);
+    } else if (item?.id) {
+      src = `${API_BASE}/items/${item.id}/image/raw?t=${Date.now()}`;
+    }
+    setImageSrc(src || placeholderSvg);
+  }, [item?.id, item?.imageUrl, selectedImageIndex, hasMultipleImages]);
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -127,14 +148,34 @@ export function ItemDetail({
         </button>
         <div className="item-details-full">
           {/* Снимка на обявата – винаги показваме (снимка или placeholder) */}
-          <div className="item-detail-image-wrapper" style={{ marginBottom: "20px", borderRadius: "12px", overflow: "hidden", maxWidth: "100%", aspectRatio: "16/10", background: "#f1f5f9" }}>
-            <img
-              src={imageSrc}
-              alt={item.title || ""}
-              className="item-detail-image"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              onError={handleImageError}
-            />
+          <div className="item-detail-image-section">
+            <div className="item-detail-image-wrapper" style={{ marginBottom: hasMultipleImages ? "12px" : "20px", borderRadius: "12px", overflow: "hidden", maxWidth: "100%", aspectRatio: "16/10", background: "linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%)" }}>
+              <img
+                src={imageSrc}
+                alt={item.title || ""}
+                className="item-detail-image"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                onError={handleImageError}
+              />
+            </div>
+            {hasMultipleImages && imageCount > 1 && (
+              <div className="item-detail-gallery-thumbs">
+                {Array.from({ length: imageCount }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`item-detail-thumb ${selectedImageIndex === i ? "active" : ""}`}
+                    onClick={() => setSelectedImageIndex(i)}
+                    aria-label={language === "bg" ? `Снимка ${i + 1}` : `Image ${i + 1}`}
+                  >
+                    <img
+                      src={`${API_BASE}/items/${item.id}/image/raw?index=${i}&t=${Date.now()}`}
+                      alt=""
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
             <h2 style={{ margin: 0 }}>{item.title || ""}</h2>

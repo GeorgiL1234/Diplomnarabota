@@ -15,7 +15,7 @@ type CreateListingFormProps = {
   paymentMethod: string;
   isVip: boolean;
   language: Language;
-  file: File | null;
+  files: File[];
   isCreating?: boolean;
   loggedInEmail?: string | null;
   onTitleChange: (title: string) => void;
@@ -26,7 +26,7 @@ type CreateListingFormProps = {
   onContactPhoneChange: (phone: string) => void;
   onPaymentMethodChange: (method: string) => void;
   onVipChange: (isVip: boolean) => void;
-  onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onFilesChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: FormEvent) => void;
 };
 
@@ -42,7 +42,7 @@ export function CreateListingForm({
   paymentMethod,
   isVip,
   language,
-  file,
+  files,
   isCreating,
   onTitleChange,
   onDescriptionChange,
@@ -52,23 +52,23 @@ export function CreateListingForm({
   onContactPhoneChange,
   onPaymentMethodChange,
   onVipChange,
-  onFileChange,
+  onFilesChange,
   onSubmit,
   loggedInEmail,
 }: CreateListingFormProps) {
   if (!show) return null;
   const t = translations[language] || translations["bg"];
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
+    if (files.length > 0) {
+      const urls = files.map((f) => URL.createObjectURL(f));
+      setPreviewUrls(urls);
+      return () => urls.forEach((u) => URL.revokeObjectURL(u));
     }
-    setPreviewUrl(null);
-  }, [file]);
+    setPreviewUrls([]);
+  }, [files]);
 
   return (
     <form onSubmit={onSubmit} className="create-listing-form">
@@ -186,34 +186,38 @@ export function CreateListingForm({
         </label>
       </div>
       <div className="form-group">
-        <label htmlFor="create-image">{t.image} *</label>
+        <label htmlFor="create-image">{t.image} * ({language === "bg" ? "до 5 снимки" : language === "en" ? "up to 5 images" : "до 5 фото"})</label>
         <input
           id="create-image"
           name="image"
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={onFileChange}
+          multiple
+          onChange={onFilesChange}
           required
           disabled={isCreating}
           className="file-input-hidden"
         />
         <div
-          className={`file-picker ${file ? "file-picker-has-file" : ""} ${isCreating ? "file-picker-disabled" : ""}`}
+          className={`file-picker ${files.length ? "file-picker-has-file" : ""} ${isCreating ? "file-picker-disabled" : ""}`}
           onClick={() => !isCreating && fileInputRef.current?.click()}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && !isCreating && fileInputRef.current?.click()}
           aria-label={t.chooseImage}
         >
-          {file && previewUrl ? (
+          {files.length > 0 && previewUrls.length > 0 ? (
             <>
-              <div className="file-picker-preview">
-                <img src={previewUrl} alt="" />
+              <div className="file-picker-preview-grid">
+                {previewUrls.slice(0, 5).map((url, i) => (
+                  <div key={i} className="file-picker-preview-thumb">
+                    <img src={url} alt="" />
+                  </div>
+                ))}
               </div>
               <div className="file-picker-info">
-                <span className="file-picker-name">{file.name}</span>
-                <span className="file-picker-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                <span className="file-picker-name">{files.length} {language === "bg" ? "снимки" : language === "en" ? "images" : "фото"}</span>
                 <span className="file-picker-action">{t.changeImage}</span>
               </div>
             </>

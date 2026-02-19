@@ -21,16 +21,15 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         // Добавяме примерни обяви само ако базата данни е празна
         if (itemRepository.count() == 0) {
-            logger.info("Базата данни е празна. Добавям примерни обяви...");
-            createSampleItems();
-            logger.info("Примерните обяви са добавени успешно!");
+            logger.info("Базата данни е празна. Няма добавени примерни обяви.");
         } else {
             logger.info("Базата данни вече съдържа обяви. Пропускам инициализацията.");
         }
     }
 
     private void createSampleItems() {
-        // ========== ЕЛЕКТРОНИКА (7 обяви) ==========
+        // Примерните обяви са премахнати – базата започва празна
+        if (false) { // disabled
         createItem("iPhone 13 Pro - Отлично състояние",
                 "Продавам iPhone 13 Pro 256GB в отлично състояние. Телефонът е с оригинален калъф и защитно стъкло от първия ден. Няма драскотини или дефекти. Включени са оригиналното зареждане и кутията.",
                 1200.00, "Електроника", "0888123456", "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop&q=80");
@@ -232,6 +231,7 @@ public class DataInitializer implements CommandLineRunner {
         createItem("Бижута и аксесоари - Колекция",
                 "Колекция от бижута и аксесоари. Включва различни стилове и материали. Подходящи за подаръци или лична употреба.",
                 90.00, "Други", "0888666783", "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop&q=80");
+        }
     }
 
     private void createItem(String title, String description, double price, String category, String phone) {

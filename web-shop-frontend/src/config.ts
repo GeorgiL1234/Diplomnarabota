@@ -19,14 +19,27 @@ export const getImageUrl = (imageUrl: string | null | undefined): string => {
   return `${API_BASE}${imageUrl}`;
 };
 
-/** За base64 използва raw endpoint (избягва проблеми с големи data URI). За URL – getImageUrl. */
+/** Разделител за множество снимки */
+export const IMAGE_DELIMITER = "|||";
+
+/** Парсва imageUrl до масив от URL-и (поддръжка за множество снимки) */
+export const parseImageUrls = (imageUrl: string | null | undefined): string[] => {
+  if (!imageUrl || !imageUrl.trim()) return [];
+  return imageUrl.split(IMAGE_DELIMITER).map((u) => u.trim()).filter(Boolean);
+};
+
+/** За base64 използва raw endpoint. За URL – getImageUrl. */
 export const getDisplayImageUrl = (
   imageUrl: string | null | undefined,
-  itemId?: number
+  itemId?: number,
+  index?: number
 ): string => {
   if (!imageUrl) return "";
-  if (imageUrl.startsWith("data:") && itemId != null) {
-    return `${API_BASE}/items/${itemId}/image/raw?t=${Date.now()}`;
+  const urls = parseImageUrls(imageUrl);
+  const single = urls.length ? urls[index ?? 0] : imageUrl;
+  if (!single) return "";
+  if (single.startsWith("data:") && itemId != null) {
+    return `${API_BASE}/items/${itemId}/image/raw?index=${index ?? 0}&t=${Date.now()}`;
   }
-  return getImageUrl(imageUrl);
+  return getImageUrl(single);
 };

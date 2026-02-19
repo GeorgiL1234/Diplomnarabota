@@ -62,7 +62,7 @@ function App() {
   const [newItemContactPhone, setNewItemContactPhone] = useState("");
   const [newItemPaymentMethod, setNewItemPaymentMethod] = useState("cash_on_delivery");
   const [newItemIsVip, setNewItemIsVip] = useState(false);
-  const [newItemFile, setNewItemFile] = useState<File | null>(null);
+  const [newItemFiles, setNewItemFiles] = useState<File[]>([]);
   const [isCreatingListing, setIsCreatingListing] = useState(false);
   
   // VIP Payment state
@@ -662,8 +662,8 @@ function App() {
       return;
     }
     
-    // Валидация: снимката е задължителна
-    if (!newItemFile) {
+    // Валидация: поне една снимка е задължителна
+    if (!newItemFiles.length) {
       setError(t.errorImageRequired);
       setIsCreatingListing(false);
       return;
@@ -749,49 +749,36 @@ function App() {
         }).then((r) => r.json());
       }
       
-      // Качване на снимката чрез upload (multipart, компресирана до 300KB)
-      if (createdItem.id && newItemFile) {
-        setMessage(language === "bg" ? "Качване на снимката..." : "Uploading image...");
-        const formData = new FormData();
-        const fileToUpload = newItemFile.size > 300 * 1024
-          ? await compressImage(newItemFile, 0.3)
-          : newItemFile;
-        formData.append("file", fileToUpload);
-        formData.append("ownerEmail", loggedInEmail!);
-        try {
-          const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
-            method: "POST",
-            body: formData,
-          });
-          if (uploadRes.ok) {
-            const uploadJson = await uploadRes.json().catch(() => ({}));
-            if (uploadJson?.imageAvailable && createdItem?.id) {
-              createdItem = { ...createdItem, imageUrl: `${API_BASE}/items/${createdItem.id}/image/raw` };
-            } else {
-              createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
-                cache: "no-store",
-              }).then((r) => r.json());
-              let imgData: { imageUrl?: string } | null = null;
-              for (let attempt = 0; attempt < 3; attempt++) {
-                const imgRes = await fetch(`${API_BASE}/items/${createdItem.id}/image?t=${Date.now()}`);
-                if (imgRes.ok) {
-                  imgData = await imgRes.json();
-                  if (imgData?.imageUrl) break;
-                }
-                if (attempt < 2) await new Promise((r) => setTimeout(r, 600));
-              }
-              if (imgData?.imageUrl) createdItem = { ...createdItem, imageUrl: imgData.imageUrl };
+      // Качване на снимките (до 5)
+      const filesToUpload = newItemFiles.slice(0, 5);
+      if (createdItem.id && filesToUpload.length) {
+        for (let i = 0; i < filesToUpload.length; i++) {
+          setMessage(language === "bg" ? `Качване на снимка ${i + 1}/${filesToUpload.length}...` : `Uploading image ${i + 1}/${filesToUpload.length}...`);
+          const formData = new FormData();
+          const f = filesToUpload[i];
+          const fileToUpload = f.size > 300 * 1024 ? await compressImage(f, 0.3) : f;
+          formData.append("file", fileToUpload);
+          formData.append("ownerEmail", loggedInEmail!);
+          formData.append("append", i > 0 ? "true" : "false");
+          try {
+            const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
+              method: "POST",
+              body: formData,
+            });
+            if (!uploadRes.ok) {
+              const errText = await uploadRes.text();
+              console.warn("Upload failed:", uploadRes.status, errText);
+              uploadFailed = true;
             }
-          } else {
-            const errText = await uploadRes.text();
-            console.warn("Upload failed:", uploadRes.status, errText);
+          } catch (e) {
+            console.warn("Upload error:", e);
             uploadFailed = true;
           }
-        } catch (e) {
-          console.warn("Upload error:", e);
-          uploadFailed = true;
         }
         setMessage(null);
+        if (filesToUpload.length) {
+          createdItem = { ...createdItem, imageUrl: `${API_BASE}/items/${createdItem.id}/image/raw` };
+        }
       }
       
       setNewItemTitle("");
@@ -804,7 +791,7 @@ function App() {
       setNewItemPaymentMethod("cash_on_delivery");
       const shouldMakeVip = newItemIsVip;
       setNewItemIsVip(false);
-      setNewItemFile(null);
+      setNewItemFiles([]);
       setShowCreateForm(false);
       
       // Оптимистично добави в списъка
@@ -925,38 +912,42 @@ function App() {
     });
   };
 
-  // handler за промяна на файла при създаване
-  const handleNewItemFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      const maxSize = 10 * 1024 * 1024; // 10MB входен лимит
-      
-      if (file.size > maxSize) {
-        setError(`Снимката е твърде голяма! Максимален размер: 10MB. Вашата снимка: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        e.target.value = '';
-        setNewItemFile(null);
+  // handler за промяна на файловете при създаване (до 5 снимки)
+  const handleNewItemFilesChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) {
+      setNewItemFiles([]);
+      return;
+    }
+    const maxFiles = 5;
+    const files = selected.slice(0, maxFiles);
+    const maxSize = 10 * 1024 * 1024;
+    for (const f of files) {
+      if (f.size > maxSize) {
+        setError(`Снимката ${f.name} е твърде голяма! Макс: 10MB.`);
+        e.target.value = "";
+        setNewItemFiles([]);
         return;
       }
-      
-      // Компресирай снимката ако е над 500KB - по-бързо качване на Render
-      if (file.size > 500 * 1024) {
-        try {
-          setMessage(language === "bg" ? "Компресиране на снимката..." : "Compressing image...");
-          const compressedFile = await compressImage(file, 0.8);
-          setNewItemFile(compressedFile);
-          setMessage(null);
-          setError(null);
-        } catch (err) {
-          console.error('Compression error:', err);
-          setError('Грешка при компресиране на снимката. Моля, опитайте с по-малка снимка.');
-          e.target.value = '';
-          setNewItemFile(null);
-        }
-      } else {
-        setNewItemFile(file);
-        setError(null);
-      }
     }
+    const needsCompress = files.some((f) => f.size > 500 * 1024);
+    if (needsCompress) {
+      try {
+        setMessage(language === "bg" ? "Обработка на снимките..." : "Processing images...");
+        const compressed = await Promise.all(
+          files.map((f) => (f.size > 500 * 1024 ? compressImage(f, 0.8) : Promise.resolve(f)))
+        );
+        setNewItemFiles(compressed);
+      } catch (err) {
+        setError("Грешка при обработка. Опитайте с по-малки снимки.");
+        setNewItemFiles([]);
+      }
+      setMessage(null);
+    } else {
+      setNewItemFiles(files);
+    }
+    setError(null);
+    e.target.value = "";
   };
 
 
@@ -1865,7 +1856,7 @@ function App() {
               paymentMethod={newItemPaymentMethod}
               isVip={newItemIsVip}
               language={language}
-              file={newItemFile}
+              files={newItemFiles}
               isCreating={isCreatingListing}
               loggedInEmail={loggedInEmail}
               onTitleChange={setNewItemTitle}
@@ -1876,7 +1867,7 @@ function App() {
               onContactPhoneChange={setNewItemContactPhone}
               onPaymentMethodChange={setNewItemPaymentMethod}
               onVipChange={setNewItemIsVip}
-              onFileChange={handleNewItemFileChange}
+              onFilesChange={handleNewItemFilesChange}
               onSubmit={handleCreateListing}
             />
 
