@@ -740,7 +740,7 @@ function App() {
         }
         throw new Error(errMsg);
       }
-      console.log("Listing created successfully:", createdItem);
+      console.log("Listing created successfully:", { id: createdItem?.id, hasImageUrl: !!createdItem?.imageUrl });
       
       // Backend create response не включва imageUrl (JsonView) – зареждаме пълния item
       if (createdItem.id && !createdItem.imageUrl) {
@@ -767,12 +767,18 @@ function App() {
             createdItem = await fetch(`${API_BASE}/items/${createdItem.id}?t=${Date.now()}`, {
               cache: "no-store",
             }).then((r) => r.json());
-            // GET /items/{id} вече не връща imageUrl – взимаме от отделен endpoint
-            const imgRes = await fetch(`${API_BASE}/items/${createdItem.id}/image?t=${Date.now()}`);
-            if (imgRes.ok) {
-              const imgData = await imgRes.json();
-              if (imgData?.imageUrl) createdItem = { ...createdItem, imageUrl: imgData.imageUrl };
+            // Retry: Render транзакцията може да не е комитната веднага
+            let imgData: { imageUrl?: string } | null = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              const imgRes = await fetch(`${API_BASE}/items/${createdItem.id}/image?t=${Date.now()}`);
+              if (imgRes.ok) {
+                imgData = await imgRes.json();
+                if (imgData?.imageUrl) break;
+              }
+              if (attempt < 2) await new Promise((r) => setTimeout(r, 600));
             }
+            if (imgData?.imageUrl) createdItem = { ...createdItem, imageUrl: imgData.imageUrl };
+            else console.warn("Upload OK but imageUrl still null after retries – backend may need more time");
           } else {
             const errText = await uploadRes.text();
             console.warn("Upload failed:", uploadRes.status, errText);
