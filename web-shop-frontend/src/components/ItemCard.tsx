@@ -30,29 +30,32 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
   }, [item.id, item.imageUrl]);
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (!img) return;
     if (dataUriFallback && dataUriFallback.length < 500000) {
-      e.currentTarget.src = dataUriFallback;
+      img.src = dataUriFallback;
       return;
     }
     if (imageUrl.includes("/image/raw") && item.id) {
       fetch(`${API_BASE}/items/${item.id}/image?t=${Date.now()}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
+          if (!img.isConnected) return;
           if (!data?.imageUrl) {
-            e.currentTarget.src = PLACEHOLDER_SVG;
+            setImageUrl(PLACEHOLDER_SVG);
             return;
           }
           if (data.imageUrl.startsWith("http")) {
-            e.currentTarget.src = data.imageUrl;
+            setImageUrl(data.imageUrl);
           } else if (data.imageUrl.startsWith("data:") && data.imageUrl.length < 500000) {
-            e.currentTarget.src = data.imageUrl;
+            setImageUrl(data.imageUrl);
           } else {
-            e.currentTarget.src = PLACEHOLDER_SVG;
+            setImageUrl(PLACEHOLDER_SVG);
           }
         })
-        .catch(() => { e.currentTarget.src = PLACEHOLDER_SVG; });
+        .catch(() => { if (img.isConnected) setImageUrl(PLACEHOLDER_SVG); });
     } else {
-      e.currentTarget.src = PLACEHOLDER_SVG;
+      setImageUrl(PLACEHOLDER_SVG);
     }
   }
   

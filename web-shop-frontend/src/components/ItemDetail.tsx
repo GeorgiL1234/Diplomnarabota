@@ -95,7 +95,7 @@ export function ItemDetail({
               alt={item.title || ""}
               className="item-detail-image"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              onError={(e) => { e.currentTarget.src = dataUriFallback || placeholderSvg; }}
+              onError={(e) => { if (e.currentTarget) e.currentTarget.src = dataUriFallback || placeholderSvg; }}
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
