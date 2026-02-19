@@ -2,7 +2,7 @@ import type { FormEvent, ChangeEvent } from "react";
 import type { Item, Review } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
-import { getImageUrl } from "../config";
+import { getDisplayImageUrl } from "../config";
 
 type ItemDetailProps = {
   item: Item;
@@ -77,7 +77,7 @@ export function ItemDetail({
 }: ItemDetailProps) {
   const t = translations[language];
 
-  const imageSrc = item.imageUrl ? getImageUrl(item.imageUrl) : null;
+  const imageSrc = item.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id) : null;
   const placeholderSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
 
   return (

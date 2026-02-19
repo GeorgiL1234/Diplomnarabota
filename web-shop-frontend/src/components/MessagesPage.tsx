@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import type { Message, Item } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
-import { getImageUrl } from "../config";
+import { getDisplayImageUrl } from "../config";
 import { ItemCard } from "./ItemCard";
 
 type MessagesPageProps = {
@@ -114,7 +114,7 @@ export function MessagesPage({
                       <div className="listing-card-header">
                         {msg.item.imageUrl && (
                           <img
-                            src={getImageUrl(msg.item.imageUrl)}
+                            src={getDisplayImageUrl(msg.item.imageUrl, msg.item.id)}
                             alt={msg.item.title}
                             className="listing-card-image"
                           />
@@ -191,7 +191,7 @@ export function MessagesPage({
                       <div className="listing-card-header">
                         {msg.item.imageUrl && (
                           <img
-                            src={getImageUrl(msg.item.imageUrl)}
+                            src={getDisplayImageUrl(msg.item.imageUrl, msg.item.id)}
                             alt={msg.item.title}
                             className="listing-card-image"
                           />

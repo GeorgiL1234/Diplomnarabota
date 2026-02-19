@@ -5,10 +5,19 @@ export const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://webshop-e6
 // Helper функция за пътя на изображенията
 export const getImageUrl = (imageUrl: string | null | undefined): string => {
   if (!imageUrl) return "";
-  // Ако е base64 data URI, върни го директно
   if (imageUrl.startsWith("data:")) return imageUrl;
-  // Ако е пълен URL, върни го директно
   if (imageUrl.startsWith("http")) return imageUrl;
-  // Иначе добави API base URL
   return `${API_BASE}${imageUrl}`;
+};
+
+/** За base64 използва raw endpoint (избягва проблеми с големи data URI). За URL – getImageUrl. */
+export const getDisplayImageUrl = (
+  imageUrl: string | null | undefined,
+  itemId?: number
+): string => {
+  if (!imageUrl) return "";
+  if (imageUrl.startsWith("data:") && itemId != null) {
+    return `${API_BASE}/items/${itemId}/image/raw?t=${Date.now()}`;
+  }
+  return getImageUrl(imageUrl);
 };

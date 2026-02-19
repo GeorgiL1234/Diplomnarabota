@@ -7,10 +7,13 @@ import com.example.webshop.services.ItemService;
 import com.fasterxml.jackson.annotation.JsonView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
 import java.util.List;
 
 @RestController
@@ -106,7 +109,7 @@ public class ItemController {
         return itemService.getById(id);
     }
 
-    /** Отделен endpoint за снимка – ако GET /items/{id} е твърде голям */
+    /** JSON с imageUrl – за URL снимки (seed). За base64 използвай /image/raw */
     @GetMapping("/{id:[0-9]+}/image")
     public ResponseEntity<java.util.Map<String, String>> getImage(@PathVariable Long id) {
         Item item = itemService.getById(id);
@@ -114,6 +117,36 @@ public class ItemController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(java.util.Map.of("imageUrl", item.getImageUrl()));
+    }
+
+    /** Raw bytes – за base64 снимки (user upload). Избягва големи JSON отговори */
+    @GetMapping("/{id:[0-9]+}/image/raw")
+    public ResponseEntity<byte[]> getImageRaw(@PathVariable Long id) {
+        Item item = itemService.getById(id);
+        String url = item.getImageUrl();
+        if (url == null || url.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (url.startsWith("data:")) {
+            try {
+                int comma = url.indexOf(',');
+                if (comma < 0) return ResponseEntity.badRequest().build();
+                String base64 = url.substring(comma + 1);
+                byte[] bytes = Base64.getDecoder().decode(base64);
+                if (bytes == null || bytes.length == 0) return ResponseEntity.notFound().build();
+                String mime = "image/jpeg";
+                if (url.startsWith("data:image/png")) mime = "image/png";
+                else if (url.startsWith("data:image/gif")) mime = "image/gif";
+                else if (url.startsWith("data:image/webp")) mime = "image/webp";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setCacheControl("public, max-age=3600");
+                return ResponseEntity.ok().contentType(MediaType.parseMediaType(mime)).headers(headers).body(bytes);
+            } catch (Exception e) {
+                logger.warn("Failed to decode base64 image for item {}: {}", id, e.getMessage());
+                return ResponseEntity.notFound().build();
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @PutMapping("/{id:[0-9]+}")

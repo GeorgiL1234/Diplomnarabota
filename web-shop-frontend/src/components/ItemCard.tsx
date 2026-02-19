@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Item } from "../types";
-import { getImageUrl, API_BASE } from "../config";
+import { getDisplayImageUrl, API_BASE } from "../config";
 import { translations, getCategoryLabel, type Language } from "../translations";
 
 const PLACEHOLDER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext fill='%2394a3b8' font-family='sans-serif' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E🖼️%3C/text%3E%3C/svg%3E";
@@ -14,13 +14,13 @@ type ItemCardProps = {
 export function ItemCard({ item, language, onClick }: ItemCardProps) {
   const t = translations[language] || translations["bg"];
   const [imageUrl, setImageUrl] = useState<string>(
-    item.imageUrl ? getImageUrl(item.imageUrl) : PLACEHOLDER_SVG
+    item.imageUrl ? getDisplayImageUrl(item.imageUrl, item.id) || PLACEHOLDER_SVG : PLACEHOLDER_SVG
   );
 
-  // Lazy-load снимка от /items/{id}/image когато списъкът не я има (от /list)
+  // Lazy-load снимка – за base64 използваме /image/raw (избягва големи JSON)
   useEffect(() => {
     if (item.imageUrl) {
-      setImageUrl(getImageUrl(item.imageUrl));
+      setImageUrl(getDisplayImageUrl(item.imageUrl, item.id) || PLACEHOLDER_SVG);
       return;
     }
     if (!item.id) return;
@@ -28,7 +28,8 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
     fetch(`${API_BASE}/items/${item.id}/image?t=${Date.now()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!cancelled && data?.imageUrl) setImageUrl(getImageUrl(data.imageUrl));
+        if (cancelled || !data?.imageUrl) return;
+        setImageUrl(getDisplayImageUrl(data.imageUrl, item.id) || PLACEHOLDER_SVG);
       })
       .catch(() => {});
     return () => { cancelled = true; };

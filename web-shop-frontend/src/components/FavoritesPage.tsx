@@ -1,7 +1,7 @@
 import type { Favorite, Item } from "../types";
 import type { Language } from "../translations";
 import { translations } from "../translations";
-import { getImageUrl } from "../config";
+import { getDisplayImageUrl } from "../config";
 
 type FavoritesPageProps = {
   favorites: Favorite[];
@@ -34,7 +34,7 @@ export function FavoritesPage({
                   {item.isVip && <div className="vip-badge">ВИП</div>}
                   {item.imageUrl && (
                     <img
-                      src={getImageUrl(item.imageUrl)}
+                      src={getDisplayImageUrl(item.imageUrl, item.id)}
                       alt={item.title}
                       className="item-image"
                       onClick={() => onItemClick(item)}
