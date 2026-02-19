@@ -912,42 +912,45 @@ function App() {
     });
   };
 
-  // handler за промяна на файловете при създаване (до 5 снимки)
+  // handler за промяна на файловете при създаване (до 5 снимки) – ДОБАВЯ към съществуващите
   const handleNewItemFilesChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
     if (selected.length === 0) {
-      setNewItemFiles([]);
       return;
     }
     const maxFiles = 5;
-    const files = selected.slice(0, maxFiles);
     const maxSize = 10 * 1024 * 1024;
-    for (const f of files) {
+    for (const f of selected) {
       if (f.size > maxSize) {
         setError(`Снимката ${f.name} е твърде голяма! Макс: 10MB.`);
         e.target.value = "";
-        setNewItemFiles([]);
         return;
       }
     }
-    const needsCompress = files.some((f) => f.size > 500 * 1024);
+    const needsCompress = selected.some((f) => f.size > 500 * 1024);
+    let processed: File[];
     if (needsCompress) {
       try {
         setMessage(language === "bg" ? "Обработка на снимките..." : "Processing images...");
-        const compressed = await Promise.all(
-          files.map((f) => (f.size > 500 * 1024 ? compressImage(f, 0.8) : Promise.resolve(f)))
+        processed = await Promise.all(
+          selected.map((f) => (f.size > 500 * 1024 ? compressImage(f, 0.8) : Promise.resolve(f)))
         );
-        setNewItemFiles(compressed);
+        setMessage(null);
       } catch (err) {
         setError("Грешка при обработка. Опитайте с по-малки снимки.");
-        setNewItemFiles([]);
+        e.target.value = "";
+        return;
       }
-      setMessage(null);
     } else {
-      setNewItemFiles(files);
+      processed = selected;
     }
+    setNewItemFiles((prev) => [...prev, ...processed].slice(0, maxFiles));
     setError(null);
     e.target.value = "";
+  };
+
+  const handleRemoveNewItemFile = (index: number) => {
+    setNewItemFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
 
@@ -1868,6 +1871,7 @@ function App() {
               onPaymentMethodChange={setNewItemPaymentMethod}
               onVipChange={setNewItemIsVip}
               onFilesChange={handleNewItemFilesChange}
+              onRemoveFile={handleRemoveNewItemFile}
               onSubmit={handleCreateListing}
             />
 

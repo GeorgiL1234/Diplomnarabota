@@ -27,6 +27,7 @@ type CreateListingFormProps = {
   onPaymentMethodChange: (method: string) => void;
   onVipChange: (isVip: boolean) => void;
   onFilesChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveFile?: (index: number) => void;
   onSubmit: (e: FormEvent) => void;
 };
 
@@ -53,6 +54,7 @@ export function CreateListingForm({
   onPaymentMethodChange,
   onVipChange,
   onFilesChange,
+  onRemoveFile,
   onSubmit,
   loggedInEmail,
 }: CreateListingFormProps) {
@@ -213,12 +215,27 @@ export function CreateListingForm({
                 {previewUrls.slice(0, 5).map((url, i) => (
                   <div key={i} className="file-picker-preview-thumb">
                     <img src={url} alt="" />
+                    {onRemoveFile && (
+                      <button
+                        type="button"
+                        className="file-picker-thumb-remove"
+                        onClick={(ev) => { ev.stopPropagation(); onRemoveFile(i); }}
+                        aria-label={language === "bg" ? "Премахни" : "Remove"}
+                        title={language === "bg" ? "Премахни снимка" : "Remove image"}
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
               <div className="file-picker-info">
                 <span className="file-picker-name">{files.length} {language === "bg" ? "снимки" : language === "en" ? "images" : "фото"}</span>
-                <span className="file-picker-action">{t.changeImage}</span>
+                <span className="file-picker-action">
+                  {files.length < 5
+                    ? (language === "bg" ? "Добави още" : language === "en" ? "Add more" : "Добавить ещё")
+                    : t.changeImage}
+                </span>
               </div>
             </>
           ) : (
