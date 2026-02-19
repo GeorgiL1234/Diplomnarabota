@@ -1,6 +1,15 @@
-// API Base URL - използва environment variable или fallback към деплойнатия backend
-// За production, Vercel автоматично ще използва VITE_API_BASE_URL environment variable
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://webshop-e6dx.onrender.com";
+// API Base URL – при deploy на Vercel винаги използвай Render backend
+const RENDER_BACKEND = "https://webshop-e6dx.onrender.com";
+const getApiBase = (): string => {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host.includes("vercel.app") || host.includes("webshop-app")) {
+      return RENDER_BACKEND;
+    }
+  }
+  return import.meta.env.VITE_API_BASE_URL || RENDER_BACKEND;
+};
+export const API_BASE = getApiBase();
 
 // Helper функция за пътя на изображенията
 export const getImageUrl = (imageUrl: string | null | undefined): string => {

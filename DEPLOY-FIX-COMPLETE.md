@@ -41,7 +41,8 @@
 
 ## 2. Vercel (Frontend) – webshop-app-2026.vercel.app
 
-### Environment Variable (задължително)
+### Environment Variable (опционално)
+Приложение има runtime проверка – на vercel.app винаги използва Render backend. За да зададеш ръчно:
 1. Vercel Dashboard → твоят проект → **Settings** → **Environment Variables**
 2. Добави: `VITE_API_BASE_URL` = `https://webshop-e6dx.onrender.com`
 3. Scope: **Production**, **Preview**
@@ -72,7 +73,7 @@ Deployments → последният deploy → ⋯ → **Redeploy** → вкл�
 
 | Проблем | Причина | Решение |
 |--------|---------|---------|
-| Снимките не се виждат | Backend не е обновен | Manual Deploy на Render |
+| Снимките не се виждат | Backend не е обновен или cold start | Manual Deploy на Render, изчакай 1 мин за cold start |
 | „Моите обяви“ празно | ownerEmail не съвпада | Провери дали си логнат с email |
 | 500 при зареждане | Cold start на Render | Изчакай 1–2 мин, опитай отново |
 | Стара версия (v2) | Cache | Clear cache and redeploy на Vercel |

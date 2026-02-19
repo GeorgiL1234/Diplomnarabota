@@ -18,7 +18,7 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
   );
   const [dataUriFallback, setDataUriFallback] = useState<string | null>(null);
 
-  // Lazy-load снимка – за base64 използваме /image/raw (избягва големи JSON)
+  // Lazy-load: първо опитай /image/raw директно (1 заявка, по-добре при cold start)
   useEffect(() => {
     if (item.imageUrl) {
       setDataUriFallback(item.imageUrl.startsWith("data:") ? item.imageUrl : null);
@@ -26,21 +26,31 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
       return;
     }
     if (!item.id) return;
-    let cancelled = false;
-    fetch(`${API_BASE}/items/${item.id}/image?t=${Date.now()}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data?.imageUrl) return;
-        setDataUriFallback(data.imageUrl.startsWith("data:") ? data.imageUrl : null);
-        setImageUrl(getDisplayImageUrl(data.imageUrl, item.id) || PLACEHOLDER_SVG);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
+    setImageUrl(`${API_BASE}/items/${item.id}/image/raw?t=${Date.now()}`);
   }, [item.id, item.imageUrl]);
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     if (dataUriFallback && dataUriFallback.length < 500000) {
       e.currentTarget.src = dataUriFallback;
+      return;
+    }
+    if (imageUrl.includes("/image/raw") && item.id) {
+      fetch(`${API_BASE}/items/${item.id}/image?t=${Date.now()}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!data?.imageUrl) {
+            e.currentTarget.src = PLACEHOLDER_SVG;
+            return;
+          }
+          if (data.imageUrl.startsWith("http")) {
+            e.currentTarget.src = data.imageUrl;
+          } else if (data.imageUrl.startsWith("data:") && data.imageUrl.length < 500000) {
+            e.currentTarget.src = data.imageUrl;
+          } else {
+            e.currentTarget.src = PLACEHOLDER_SVG;
+          }
+        })
+        .catch(() => { e.currentTarget.src = PLACEHOLDER_SVG; });
     } else {
       e.currentTarget.src = PLACEHOLDER_SVG;
     }
