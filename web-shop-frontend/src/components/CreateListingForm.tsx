@@ -197,7 +197,6 @@ export function CreateListingForm({
           accept="image/*"
           multiple
           onChange={onFilesChange}
-          required
           disabled={isCreating}
           className="file-input-hidden"
         />
