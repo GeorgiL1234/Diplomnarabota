@@ -180,7 +180,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (loggedInEmail || view === "all") {
+    // НЕ викай loadItems при view "detail" – иначе race с setSelectedItem(createdItem) → лилав екран
+    if ((loggedInEmail || view === "all") && view !== "detail") {
       loadItems();
     }
   }, [loggedInEmail, view]);
@@ -809,7 +810,6 @@ function App() {
           return 0;
         });
       });
-      // Първо selectedItem и view – useEffect ще викне loadItems когато view стане "detail"
       setSelectedItem(createdItem);
       setReviews([]);
       setView("detail");
@@ -1709,7 +1709,7 @@ function App() {
       )}
 
       {/* ДЕТАЙЛЕН VIEW - показва се когато view === "detail" */}
-      {view === "detail" && selectedItem && selectedItem.id && (
+      {view === "detail" && selectedItem && selectedItem.id != null && (
         <ItemDetail
           item={selectedItem}
           reviews={reviews}
