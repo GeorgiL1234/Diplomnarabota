@@ -48,11 +48,13 @@ public class Item {
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews;
 
-    // getters & setters
+    // getters & setters – id задължителен за create response (upload flow)
+    @JsonView(JsonViews.WithImage.class)
     public Long getId() {
         return id;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getTitle() {
         return title;
     }
@@ -61,6 +63,7 @@ public class Item {
         this.title = title;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getDescription() {
         return description;
     }
@@ -69,6 +72,7 @@ public class Item {
         this.description = description;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public double getPrice() {
         return price;
     }
@@ -86,6 +90,7 @@ public class Item {
         this.imageUrl = imageUrl;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getOwnerEmail() {
         return ownerEmail;
     }
@@ -94,6 +99,7 @@ public class Item {
         this.ownerEmail = ownerEmail;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getCategory() {
         return category;
     }
@@ -102,6 +108,7 @@ public class Item {
         this.category = category;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getContactEmail() {
         return contactEmail;
     }
@@ -110,6 +117,7 @@ public class Item {
         this.contactEmail = contactEmail;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getContactPhone() {
         return contactPhone;
     }
@@ -118,6 +126,7 @@ public class Item {
         this.contactPhone = contactPhone;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public Boolean getIsVip() {
         return isVip != null ? isVip : false;
     }
@@ -126,6 +135,7 @@ public class Item {
         this.isVip = isVip != null ? isVip : false;
     }
 
+    @JsonView(JsonViews.WithImage.class)
     public String getPaymentMethod() {
         return paymentMethod;
     }
