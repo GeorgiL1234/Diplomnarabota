@@ -711,9 +711,10 @@ function App() {
       };
       
       // Create без снимка (избягва 500 на Render), после upload
+      // Timeout 120 сек – Render cold start може да отнеме 50–60 сек, плюс време за обработка
       setMessage(language === "bg" ? "Създаване на обява..." : "Creating listing...");
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
       let res = await fetch(`${API_BASE}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=UTF-8" },
@@ -761,10 +762,14 @@ function App() {
           formData.append("ownerEmail", loggedInEmail!);
           formData.append("append", i > 0 ? "true" : "false");
           try {
+            const uploadController = new AbortController();
+            const uploadTimeout = setTimeout(() => uploadController.abort(), 60000); // 60 сек на снимка
             const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
               method: "POST",
               body: formData,
+              signal: uploadController.signal,
             });
+            clearTimeout(uploadTimeout);
             if (!uploadRes.ok) {
               const errText = await uploadRes.text();
               console.warn("Upload failed:", uploadRes.status, errText);
@@ -829,10 +834,10 @@ function App() {
       const e = err as Error & { name?: string };
       if (e?.name === "AbortError") {
         setError(language === "bg"
-          ? "Заявката отне твърде много време. Render се „подгрява“ – опитайте отново след 1 минута."
+          ? "Заявката отне твърде много време. Render се „подгрява“ – отворете началната страница, изчакайте около 1 минута, след това опитайте отново да създадете обява."
           : language === "en"
-          ? "Request took too long. Render is warming up – try again in 1 minute."
-          : "Запрос занял слишком много времени. Render прогревается – попробуйте через 1 минуту.");
+          ? "Request took too long. Render is warming up – open the home page, wait about 1 minute, then try creating the listing again."
+          : "Запрос занял слишком много времени. Render прогревается – откройте главную страницу, подождите около 1 минуты, затем попробуйте снова создать объявление.");
       } else {
         setError(e?.message || String(err));
       }
