@@ -4,6 +4,7 @@ import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
 import com.example.webshop.services.ItemService;
 import com.example.webshop.services.VipPaymentService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -21,6 +22,12 @@ public class VipController {
         this.itemRepository = itemRepository;
         this.itemService = itemService;
         this.vipPaymentService = vipPaymentService;
+    }
+
+    /** Лека заявка за "подгряване" на Render.com – health check за VIP */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     // ACTIVATE VIP FOR ITEM (deprecated - use /vip-payment/complete instead)

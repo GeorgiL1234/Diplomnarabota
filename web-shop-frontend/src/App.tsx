@@ -400,8 +400,9 @@ function App() {
     try {
       console.log("Login attempt:", { email: loginEmail });
       
+      // 90 сек като при регистрация – при cold start на Render отговорът може да е след 50–60+ сек
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",

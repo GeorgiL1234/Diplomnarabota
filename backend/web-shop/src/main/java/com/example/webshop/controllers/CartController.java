@@ -4,6 +4,7 @@ import com.example.webshop.models.CartItem;
 import com.example.webshop.models.User;
 import com.example.webshop.repositories.UserRepository;
 import com.example.webshop.services.CartService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,12 @@ public class CartController {
     public CartController(CartService cartService, UserRepository userRepo) {
         this.cartService = cartService;
         this.userRepo = userRepo;
+    }
+
+    /** Лека заявка за "подгряване" на Render.com – health check за cart */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     @GetMapping

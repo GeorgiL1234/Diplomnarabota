@@ -32,8 +32,7 @@ public class ItemController {
     @JsonView(JsonViews.WithImage.class)
     public ResponseEntity<?> create(@RequestBody Item item) {
         try {
-            // Валидация на входните данни
-            if (item == null) {
+                if (item == null) {
                 logger.error("Create item attempt with null item object");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item data is required");
             }

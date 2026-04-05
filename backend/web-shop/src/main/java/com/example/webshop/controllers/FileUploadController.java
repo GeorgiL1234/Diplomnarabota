@@ -42,6 +42,12 @@ public class FileUploadController {
         this.itemRepository = itemRepository;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за upload */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     private static final String IMG_DELIM = "|||";
 
     @PostMapping(value = "/{itemId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

@@ -22,6 +22,12 @@ public class VipPaymentController {
         this.vipPaymentService = vipPaymentService;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за VIP плащания */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     /**
      * Създава ново плащане за VIP статус
      * POST /vip-payment/create

@@ -20,7 +20,6 @@ public class AuthController {
         this.userService = userService;
     }
 
-    /** Лека заявка за "подгряване" на Render.com - предотвратява cold start при login/register */
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("OK");
@@ -29,7 +28,6 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
-            // Валидация на входните данни
             if (user == null) {
                 logger.error("Register attempt with null user object");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User data is required");
@@ -64,7 +62,6 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User user) {
         try {
-            // Валидация на входните данни
             if (user == null) {
                 logger.error("Login attempt with null user object");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User data is required");

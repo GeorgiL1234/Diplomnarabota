@@ -3,6 +3,7 @@ package com.example.webshop.controllers;
 import com.example.webshop.dto.CreateItemOrderRequest;
 import com.example.webshop.models.ItemOrder;
 import com.example.webshop.services.ItemOrderService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,12 @@ public class ItemOrderController {
 
     public ItemOrderController(ItemOrderService itemOrderService) {
         this.itemOrderService = itemOrderService;
+    }
+
+    /** Лека заявка за "подгряване" на Render.com – health check за item-orders */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     // CREATE ITEM ORDER

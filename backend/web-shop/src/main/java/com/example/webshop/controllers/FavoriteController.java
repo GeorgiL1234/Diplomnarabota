@@ -2,6 +2,7 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Favorite;
 import com.example.webshop.services.FavoriteService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +17,12 @@ public class FavoriteController {
 
     public FavoriteController(FavoriteService favoriteService) {
         this.favoriteService = favoriteService;
+    }
+
+    /** Лека заявка за "подгряване" на Render.com – health check за favorites */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     // GET USER FAVORITES
