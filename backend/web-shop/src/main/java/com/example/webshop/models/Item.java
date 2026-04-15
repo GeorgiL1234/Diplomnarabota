@@ -4,6 +4,7 @@ import com.example.webshop.config.JsonViews;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -16,8 +17,10 @@ public class Item {
 
     private String title;
     private String description;
-    private double price;
-    
+
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal price;
+
     @Lob
     @Column(columnDefinition = "TEXT")
     private String imageUrl;
@@ -73,11 +76,11 @@ public class Item {
     }
 
     @JsonView(JsonViews.WithImage.class)
-    public double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

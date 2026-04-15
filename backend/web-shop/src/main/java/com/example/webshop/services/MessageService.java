@@ -1,9 +1,12 @@
 package com.example.webshop.services;
 
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.Item;
 import com.example.webshop.models.Message;
+import org.springframework.http.HttpStatus;
 import com.example.webshop.repositories.ItemRepository;
 import com.example.webshop.repositories.MessageRepository;
+import com.example.webshop.validation.EmailValidation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,23 +37,29 @@ public class MessageService {
         // Валидация
         if (message == null) {
             logger.error("Message is null");
-            throw new RuntimeException("Message data is required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message data is required");
         }
         
-        if (message.getSenderEmail() == null || message.getSenderEmail().trim().isEmpty()) {
+        String sender = EmailValidation.trim(message.getSenderEmail());
+        if (sender.isEmpty()) {
             logger.error("Sender email is null or empty");
-            throw new RuntimeException("Sender email is required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Sender email is required");
         }
+        if (!EmailValidation.isValid(sender)) {
+            logger.error("Sender email invalid format");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid sender email address");
+        }
+        message.setSenderEmail(sender);
         
         if (message.getContent() == null || message.getContent().trim().isEmpty()) {
             logger.error("Message content is null or empty");
-            throw new RuntimeException("Message content is required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message content is required");
         }
         
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> {
                     logger.error("Item not found with ID: {}", itemId);
-                    return new RuntimeException("Item not found");
+                    return new ApiException(HttpStatus.NOT_FOUND, "Item not found");
                 });
 
         // Задаваме item и timestamp
@@ -77,7 +86,7 @@ public class MessageService {
     @Transactional
     public Message addResponse(Long messageId, String response) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("Message not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Message not found"));
 
         message.setResponse(response);
         Message saved = messageRepository.save(message);

@@ -11,6 +11,17 @@ const getApiBase = (): string => {
 };
 export const API_BASE = getApiBase();
 
+/** JWT в localStorage – изпраща се като Authorization: Bearer … */
+export const AUTH_TOKEN_KEY = "authToken";
+
+export function withAuth(headers: Record<string, string> = {}): Record<string, string> {
+  if (typeof localStorage === "undefined") return { ...headers };
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  const h = { ...headers };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
+
 // Helper функция за пътя на изображенията
 export const getImageUrl = (imageUrl: string | null | undefined): string => {
   if (!imageUrl) return "";
@@ -38,7 +49,7 @@ export const getDisplayImageUrl = (
   const urls = parseImageUrls(imageUrl);
   const single = urls.length ? urls[index ?? 0] : imageUrl;
   if (!single) return "";
-  if (single.startsWith("data:") && itemId != null) {
+  if ((single.startsWith("data:") || single.startsWith("fs:")) && itemId != null) {
     return `${API_BASE}/items/${itemId}/image/raw?index=${index ?? 0}&t=${Date.now()}`;
   }
   return getImageUrl(single);

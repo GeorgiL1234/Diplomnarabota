@@ -1,0 +1,43 @@
+# PostgreSQL + web-shop backend (опционално приложението).
+# Само БД: docker compose up -d postgres
+# Пълен стек: docker compose up -d --build
+#
+# Локално без Docker за app: mvn spring-boot:run (DB_HOST=localhost по подразбиране)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: webshop
+      POSTGRES_USER: webshop
+      POSTGRES_PASSWORD: webshop
+    ports:
+      - "5432:5432"
+    volumes:
+      - webshop-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webshop -d webshop"]
+      interval: 5s
+      timeout: 5s
+      retries: 8
+
+  web-shop:
+    build:
+      context: ./backend/web-shop
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: webshop
+      DB_USER: webshop
+      DB_PASSWORD: webshop
+      JWT_SECRET: ${JWT_SECRET:-local-docker-jwt-secret-min-32-chars!!}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  webshop-pgdata:

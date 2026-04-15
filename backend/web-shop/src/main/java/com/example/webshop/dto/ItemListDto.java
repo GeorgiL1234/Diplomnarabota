@@ -1,5 +1,7 @@
 package com.example.webshop.dto;
 
+import java.math.BigDecimal;
+
 /**
  * DTO за списък обяви – БЕЗ imageUrl, за да не претоварваме response (Render 512MB).
  * Детайлът се зарежда при клик чрез GET /items/{id}.
@@ -8,7 +10,7 @@ public class ItemListDto {
     private Long id;
     private String title;
     private String description;
-    private double price;
+    private BigDecimal price;
     private String ownerEmail;
     private String category;
     private String contactEmail;
@@ -39,8 +41,8 @@ public class ItemListDto {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public double getPrice() { return price; }
-    public void setPrice(double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
     public String getOwnerEmail() { return ownerEmail; }
     public void setOwnerEmail(String ownerEmail) { this.ownerEmail = ownerEmail; }
     public String getCategory() { return category; }

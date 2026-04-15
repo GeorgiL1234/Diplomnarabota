@@ -1,5 +1,6 @@
 package com.example.webshop.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class CreateOrderRequest {
@@ -25,7 +26,7 @@ public class CreateOrderRequest {
 
     public static class ItemRequest {
         private String productName;
-        private double price;
+        private BigDecimal price;
         private int quantity;
 
         public String getProductName() {
@@ -36,11 +37,11 @@ public class CreateOrderRequest {
             this.productName = productName;
         }
 
-        public double getPrice() {
+        public BigDecimal getPrice() {
             return price;
         }
 
-        public void setPrice(double price) {
+        public void setPrice(BigDecimal price) {
             this.price = price;
         }
 

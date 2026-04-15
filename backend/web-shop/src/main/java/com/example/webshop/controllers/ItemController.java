@@ -1,7 +1,9 @@
 package com.example.webshop.controllers;
 
 import com.example.webshop.config.JsonViews;
+import com.example.webshop.config.UploadStorage;
 import com.example.webshop.dto.ItemListDto;
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.Item;
 import com.example.webshop.services.ItemService;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -13,6 +15,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.List;
 
@@ -30,53 +36,43 @@ public class ItemController {
 
     @PostMapping
     @JsonView(JsonViews.WithImage.class)
-    public ResponseEntity<?> create(@RequestBody Item item) {
-        try {
-            // Валидация на входните данни
-            if (item == null) {
-                logger.error("Create item attempt with null item object");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Item data is required");
-            }
-            
-            if (item.getTitle() == null || item.getTitle().trim().isEmpty()) {
-                logger.error("Create item attempt with empty title");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Title is required");
-            }
-            
-            if (item.getDescription() == null || item.getDescription().trim().isEmpty()) {
-                logger.error("Create item attempt with empty description");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Description is required");
-            }
-            if (item.getDescription().trim().length() < 40) {
-                logger.error("Create item attempt with description too short: {} chars", item.getDescription().length());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Description must be at least 40 characters");
-            }
-            
-            if (item.getPrice() <= 0) {
-                logger.error("Create item attempt with invalid price: {}", item.getPrice());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Price must be greater than 0");
-            }
-            
-            if (item.getOwnerEmail() == null || item.getOwnerEmail().trim().isEmpty()) {
-                logger.error("Create item attempt without ownerEmail");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Owner email is required");
-            }
-            
-            logger.info("Creating item: title={}, ownerEmail={}, category={}", 
-                    item.getTitle(), item.getOwnerEmail(), item.getCategory());
-            
-            Item createdItem = itemService.create(item);
-            logger.info("Item created successfully with ID: {}", createdItem.getId());
-            
-            return ResponseEntity.ok(createdItem);
-        } catch (RuntimeException e) {
-            logger.error("Error creating item", e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            logger.error("Unexpected error creating item", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to create item: " + e.getMessage());
+    public Item create(@RequestBody Item item) {
+        if (item == null) {
+            logger.error("Create item attempt with null item object");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Item data is required");
         }
+
+        if (item.getTitle() == null || item.getTitle().trim().isEmpty()) {
+            logger.error("Create item attempt with empty title");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Title is required");
+        }
+
+        if (item.getDescription() == null || item.getDescription().trim().isEmpty()) {
+            logger.error("Create item attempt with empty description");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Description is required");
+        }
+        if (item.getDescription().trim().length() < 40) {
+            logger.error("Create item attempt with description too short: {} chars", item.getDescription().length());
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Description must be at least 40 characters");
+        }
+
+        if (item.getPrice() == null || item.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            logger.error("Create item attempt with invalid price: {}", item.getPrice());
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Price must be greater than 0");
+        }
+
+        if (item.getOwnerEmail() == null || item.getOwnerEmail().trim().isEmpty()) {
+            logger.error("Create item attempt without ownerEmail");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Owner email is required");
+        }
+
+        logger.info("Creating item: title={}, ownerEmail={}, category={}",
+                item.getTitle(), item.getOwnerEmail(), item.getCategory());
+
+        Item createdItem = itemService.create(item);
+        logger.info("Item created successfully with ID: {}", createdItem.getId());
+
+        return createdItem;
     }
 
     /** Health check – използвай /items/health-check (не /ping – конфликт с /{id}) */
@@ -126,7 +122,7 @@ public class ItemController {
         if (item.getImageUrl() == null || item.getImageUrl().isEmpty()) {
             return ResponseEntity.ok(java.util.Map.of("count", 0));
         }
-        String[] parts = item.getImageUrl().split(java.util.regex.Pattern.quote(IMG_DELIM));
+        String[] parts = item.getImageUrl().split(java.util.regex.Pattern.quote(UploadStorage.IMAGE_PART_DELIMITER));
         int count = 0;
         for (String p : parts) {
             if (p != null && !p.trim().isEmpty()) count++;
@@ -134,9 +130,7 @@ public class ItemController {
         return ResponseEntity.ok(java.util.Map.of("count", Math.max(1, count)));
     }
 
-    private static final String IMG_DELIM = "|||";
-
-    /** Raw bytes – за base64 снимки (user upload). ?index=0,1,2 за множество снимки */
+    /** Raw bytes – base64 (legacy), fs: файлове на диска, или външен http URL. ?index=0,1,2 за множество снимки */
     @GetMapping("/{id:[0-9]+}/image/raw")
     public ResponseEntity<byte[]> getImageRaw(
             @PathVariable Long id,
@@ -146,9 +140,36 @@ public class ItemController {
         if (raw == null || raw.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        String[] parts = raw.split(java.util.regex.Pattern.quote(IMG_DELIM));
+        String[] parts = raw.split(java.util.regex.Pattern.quote(UploadStorage.IMAGE_PART_DELIMITER));
         String url = (index >= 0 && index < parts.length) ? parts[index].trim() : parts[0].trim();
         if (url.isEmpty()) return ResponseEntity.notFound().build();
+        if (url.startsWith(UploadStorage.FS_PREFIX)) {
+            String filename = url.substring(UploadStorage.FS_PREFIX.length());
+            if (!UploadStorage.isSafeStoredFileName(filename) || !filename.startsWith(id + "_")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            try {
+                Path base = UploadStorage.getUploadRoot();
+                Path file = base.resolve(filename).normalize();
+                if (!file.startsWith(base) || !Files.isRegularFile(file)) {
+                    return ResponseEntity.notFound().build();
+                }
+                byte[] bytes = Files.readAllBytes(file);
+                if (bytes.length == 0) {
+                    return ResponseEntity.notFound().build();
+                }
+                String mime = Files.probeContentType(file);
+                if (mime == null || mime.isEmpty()) {
+                    mime = "image/jpeg";
+                }
+                HttpHeaders headers = new HttpHeaders();
+                headers.setCacheControl("public, max-age=3600");
+                return ResponseEntity.ok().contentType(MediaType.parseMediaType(mime)).headers(headers).body(bytes);
+            } catch (IOException e) {
+                logger.warn("Failed to read stored image for item {}: {}", id, e.getMessage());
+                return ResponseEntity.notFound().build();
+            }
+        }
         if (url.startsWith("data:")) {
             try {
                 int comma = url.indexOf(',');

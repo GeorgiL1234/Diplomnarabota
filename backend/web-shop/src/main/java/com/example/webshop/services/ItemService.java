@@ -1,12 +1,17 @@
 package com.example.webshop.services;
 
+import com.example.webshop.config.UploadStorage;
 import com.example.webshop.dto.ItemListDto;
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.Item;
+import org.springframework.http.HttpStatus;
 import com.example.webshop.repositories.ItemRepository;
+import com.example.webshop.validation.EmailValidation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class ItemService {
@@ -19,10 +24,11 @@ public class ItemService {
 
     @Transactional
     public Item create(Item item) {
+        validateListingEmails(item);
         // Валидация: поне email или телефон трябва да е попълнен
         if ((item.getContactEmail() == null || item.getContactEmail().trim().isEmpty()) &&
             (item.getContactPhone() == null || item.getContactPhone().trim().isEmpty())) {
-            throw new RuntimeException("Трябва да посочите поне email или телефон за контакт");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Трябва да посочите поне email или телефон за контакт");
         }
         // saveAndFlush() принудително записва в базата данни веднага
         return itemRepository.saveAndFlush(item);
@@ -53,7 +59,7 @@ public class ItemService {
 
     public Item getById(Long id) {
         return itemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
     }
 
     @Transactional
@@ -64,7 +70,11 @@ public class ItemService {
         item.setDescription(updatedItem.getDescription());
         item.setPrice(updatedItem.getPrice());
         item.setCategory(updatedItem.getCategory());
-        item.setContactEmail(updatedItem.getContactEmail());
+        String contactMail = EmailValidation.trim(updatedItem.getContactEmail());
+        if (!contactMail.isEmpty() && !EmailValidation.isValid(contactMail)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid contact email address");
+        }
+        item.setContactEmail(contactMail.isEmpty() ? null : contactMail);
         item.setContactPhone(updatedItem.getContactPhone());
         // ownerEmail не го сменяме при update (за да не "крадат" обяви)
 
@@ -73,6 +83,31 @@ public class ItemService {
 
     @Transactional
     public void delete(Long id) {
+        itemRepository.findById(id).ifPresent(item -> {
+            String raw = item.getImageUrl();
+            if (raw != null && !raw.isEmpty()) {
+                for (String part : raw.split(Pattern.quote(UploadStorage.IMAGE_PART_DELIMITER))) {
+                    String p = part.trim();
+                    if (p.startsWith(UploadStorage.FS_PREFIX)) {
+                        UploadStorage.deleteStoredFileIfExists(p.substring(UploadStorage.FS_PREFIX.length()));
+                    }
+                }
+            }
+        });
         itemRepository.deleteById(id);
+    }
+
+    private void validateListingEmails(Item item) {
+        String owner = EmailValidation.trim(item.getOwnerEmail());
+        if (owner.isEmpty() || !EmailValidation.isValid(owner)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid owner email address");
+        }
+        item.setOwnerEmail(owner);
+
+        String contact = EmailValidation.trim(item.getContactEmail());
+        if (!contact.isEmpty() && !EmailValidation.isValid(contact)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid contact email address");
+        }
+        item.setContactEmail(contact.isEmpty() ? null : contact);
     }
 }

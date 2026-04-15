@@ -1,5 +1,6 @@
 package com.example.webshop.services;
 
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.Item;
 import com.example.webshop.models.VipPayment;
 import com.example.webshop.repositories.ItemRepository;
@@ -11,16 +12,20 @@ import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Service
 public class VipPaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(VipPaymentService.class);
-    private static final Double VIP_PRICE = 2.0; // 2 EUR
+    /** VIP такса в EUR — фиксирана сума, без двоично закръгляване */
+    private static final BigDecimal VIP_PRICE = new BigDecimal("2.00");
 
     private final VipPaymentRepository vipPaymentRepository;
     private final ItemRepository itemRepository;
@@ -41,27 +46,27 @@ public class VipPaymentService {
                                    String cardLastFour, String cardHolder, String expiryDate) {
         // Проверка дали обявата съществува
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found: " + itemId));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found: " + itemId));
 
         // Проверка дали потребителят е собственик
         if (item.getOwnerEmail() == null || !item.getOwnerEmail().equals(ownerEmail)) {
-            throw new RuntimeException("You can only pay for VIP for your own listings");
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only pay for VIP for your own listings");
         }
 
         // Проверка дали вече има активна VIP обява
         if (item.getIsVip() != null && item.getIsVip()) {
-            throw new RuntimeException("This listing is already VIP");
+            throw new ApiException(HttpStatus.CONFLICT, "This listing is already VIP");
         }
 
         // Проверка дали вече има pending плащане
         vipPaymentRepository.findByItemIdAndStatus(itemId, "PENDING")
                 .ifPresent(payment -> {
-                    throw new RuntimeException("A payment is already pending for this listing");
+                    throw new ApiException(HttpStatus.CONFLICT, "A payment is already pending for this listing");
                 });
 
         // За VIP плащането ТРЯБВА да е с карта
         if (!"card".equalsIgnoreCase(paymentMethod)) {
-            throw new RuntimeException("VIP status requires payment with a card");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VIP status requires payment with a card");
         }
 
         VipPayment payment = new VipPayment(itemId, ownerEmail, VIP_PRICE);
@@ -83,16 +88,16 @@ public class VipPaymentService {
     @Transactional
     public VipPayment completePayment(Long paymentId, String ownerEmail, String paymentMethodId) {
         VipPayment payment = vipPaymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment not found: " + paymentId));
 
         // Проверка дали потребителят е собственик на плащането
         if (!payment.getOwnerEmail().equals(ownerEmail)) {
-            throw new RuntimeException("You can only complete your own payments");
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only complete your own payments");
         }
 
         // Проверка дали плащането вече е завършено
         if ("COMPLETED".equals(payment.getStatus())) {
-            throw new RuntimeException("Payment is already completed");
+            throw new ApiException(HttpStatus.CONFLICT, "Payment is already completed");
         }
 
         // Обработка на плащането чрез Stripe
@@ -102,7 +107,7 @@ public class VipPaymentService {
                 
                 // Създаване на Payment Intent
                 PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
-                        .setAmount((long)(VIP_PRICE * 100)) // Stripe използва центове
+                        .setAmount(VIP_PRICE.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValueExact())
                         .setCurrency("eur")
                         .setPaymentMethod(paymentMethodId)
                         .setConfirm(true)
@@ -111,13 +116,13 @@ public class VipPaymentService {
                 PaymentIntent paymentIntent = PaymentIntent.create(paramsBuilder.build());
                 
                 if (!"succeeded".equals(paymentIntent.getStatus())) {
-                    throw new RuntimeException("Payment failed: " + paymentIntent.getStatus());
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "Payment failed: " + paymentIntent.getStatus());
                 }
                 
                 logger.info("Stripe payment successful. PaymentIntent ID: {}", paymentIntent.getId());
             } catch (StripeException e) {
                 logger.error("Stripe payment error", e);
-                throw new RuntimeException("Payment processing failed: " + e.getMessage());
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Payment processing failed: " + e.getMessage());
             }
         } else {
             if (stripeSecretKey == null || stripeSecretKey.isEmpty()) {
@@ -129,7 +134,7 @@ public class VipPaymentService {
 
         // Активирай VIP статуса на обявата
         Item item = itemRepository.findById(payment.getItemId())
-                .orElseThrow(() -> new RuntimeException("Item not found: " + payment.getItemId()));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found: " + payment.getItemId()));
 
         item.setIsVip(true);
         itemRepository.save(item);
@@ -160,7 +165,7 @@ public class VipPaymentService {
     /**
      * Връща цената за VIP
      */
-    public Double getVipPrice() {
+    public BigDecimal getVipPrice() {
         return VIP_PRICE;
     }
 }

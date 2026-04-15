@@ -1,6 +1,7 @@
 package com.example.webshop.models;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,8 +34,8 @@ public class ItemOrder {
     @Column(nullable = false, length = 500)
     private String deliveryAddress;
 
-    @Column(nullable = false)
-    private double totalPrice;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal totalPrice;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -91,11 +92,11 @@ public class ItemOrder {
         this.deliveryAddress = deliveryAddress;
     }
 
-    public double getTotalPrice() {
+    public BigDecimal getTotalPrice() {
         return totalPrice;
     }
 
-    public void setTotalPrice(double totalPrice) {
+    public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
     }
 

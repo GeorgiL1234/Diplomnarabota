@@ -1,7 +1,9 @@
 package com.example.webshop.services;
 
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.Item;
 import com.example.webshop.models.Review;
+import org.springframework.http.HttpStatus;
 import com.example.webshop.repositories.ItemRepository;
 import com.example.webshop.repositories.ReviewRepository;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,7 @@ public class ReviewService {
     @Transactional
     public Review addReview(Long itemId, Review review) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
 
         review.setItem(item);
         return reviewRepository.save(review);

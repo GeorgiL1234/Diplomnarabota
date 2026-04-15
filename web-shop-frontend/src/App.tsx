@@ -2,16 +2,19 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import "./App.css";
-import { translations, getCategoryLabel, type Language } from "./translations";
+import { translations, type Language } from "./translations";
 import type { Item, Favorite, Review, Message, ItemOrder, View } from "./types";
-import { CATEGORIES } from "./types";
-import { API_BASE } from "./config";
+import { API_BASE, withAuth } from "./config";
+import { compressImage } from "./utils/compressImage";
+import { useLoadItems } from "./hooks/useLoadItems";
+import { useShopAuth } from "./hooks/useShopAuth";
 import { Header } from "./components/Header";
 import { LoginPage } from "./components/LoginPage";
 import { RegisterPage } from "./components/RegisterPage";
+import { AppAlerts } from "./components/AppAlerts";
+import { GuestWelcomeFallback } from "./components/GuestWelcomeFallback";
+import { ListingsSection } from "./components/ListingsSection";
 import { ItemDetail } from "./components/ItemDetail";
-import { ItemList } from "./components/ItemList";
-import { CreateListingForm } from "./components/CreateListingForm";
 import { MessagesPage } from "./components/MessagesPage";
 import { OrdersPage } from "./components/OrdersPage";
 import { FavoritesPage } from "./components/FavoritesPage";
@@ -21,34 +24,6 @@ import { LandingPage } from "./components/LandingPage";
 import { useWebSocketMessages } from "./useWebSocketMessages";
 
 function App() {
-  // auth - login state (отделни променливи за вход)
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  
-  // auth - register state (отделни променливи за регистрация)
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
-  // Запазваме email в localStorage за персистентност
-  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(() => {
-    return localStorage.getItem("loggedInEmail");
-  });
-  
-  // Wrapper функция за setLoggedInEmail която също обновява localStorage
-  const updateLoggedInEmail = (email: string | null) => {
-    if (email) {
-      localStorage.setItem("loggedInEmail", email);
-    } else {
-      localStorage.removeItem("loggedInEmail");
-    }
-    setLoggedInEmail(email);
-  };
-
-  // items
-  const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("Всички");
 
@@ -99,20 +74,7 @@ function App() {
   });
   
   const [contactPhonePrefilled, setContactPhonePrefilled] = useState(false);
-  // При отваряне на формата за създаване - попълни email и телефон от логнатия потребител / запомнени данни
-  useEffect(() => {
-    if (showCreateForm && loggedInEmail) {
-      setNewItemContactEmail(loggedInEmail);
-      const savedPhone = localStorage.getItem("userContactPhone");
-      if (savedPhone) {
-        setNewItemContactPhone(savedPhone);
-        setContactPhonePrefilled(true);
-      } else {
-        setContactPhonePrefilled(false);
-      }
-    }
-  }, [showCreateForm, loggedInEmail]);
-  
+
   // messages page
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
@@ -138,53 +100,57 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // зареждане на продуктите
-  const loadItems = () => {
-    const tryFetch = (url: string) =>
-      fetch(url).then((res) => {
-        if (!res.ok) throw { status: res.status };
-        return res.json();
-      });
+  const { items, setItems, loadItems } = useLoadItems(setSelectedItem, setError);
 
-    // Локално: /items (пълен). Production: /items/list (избягва 500 от големи base64)
-    const useFull = API_BASE.includes("localhost");
-    const listUrl = useFull ? `${API_BASE}/items` : `${API_BASE}/items/list`;
+  const {
+    loginEmail,
+    setLoginEmail,
+    loginPassword,
+    setLoginPassword,
+    registerEmail,
+    setRegisterEmail,
+    registerPassword,
+    setRegisterPassword,
+    fullName,
+    setFullName,
+    isRegistering,
+    isLoggingIn,
+    loggedInEmail,
+    handleRegister,
+    handleLogin,
+    handleLogout,
+  } = useShopAuth({
+    language,
+    setError,
+    setMessage,
+    setView,
+    loadItems,
+    setFavorites,
+    setFavoriteItemIds,
+    setSelectedItem,
+    setReviews,
+  });
 
-    tryFetch(`${listUrl}?t=${Date.now()}`)
-      .catch((err) => {
-        if (!useFull && (err?.status === 400 || err?.status === 404)) {
-          return tryFetch(`${API_BASE}/items`);
-        }
-        throw new Error("HTTP " + (err?.status || "?"));
-      })
-      .then((data) => {
-        const sortedData = [...data].sort((a: Item, b: Item) => {
-          const aVip = a.isVip === true;
-          const bVip = b.isVip === true;
-          if (aVip && !bVip) return -1;
-          if (!aVip && bVip) return 1;
-          return 0;
-        });
-        setItems(sortedData);
-        setSelectedItem((prev) => {
-          if (!prev) return prev;
-          const updated = sortedData.find((it: Item) => it.id === prev.id);
-          if (updated) {
-            // Запази imageUrl – списъкът (/list) не го връща, иначе губим снимката след create
-            return { ...updated, imageUrl: updated.imageUrl || prev.imageUrl };
-          }
-          return prev; // Не нулирай – item-ът може да още не е в списъка
-        });
-      })
-      .catch((err) => setError(err?.message || String(err)));
-  };
+  // При отваряне на формата за създаване - попълни email и телефон от логнатия потребител / запомнени данни
+  useEffect(() => {
+    if (showCreateForm && loggedInEmail) {
+      setNewItemContactEmail(loggedInEmail);
+      const savedPhone = localStorage.getItem("userContactPhone");
+      if (savedPhone) {
+        setNewItemContactPhone(savedPhone);
+        setContactPhonePrefilled(true);
+      } else {
+        setContactPhonePrefilled(false);
+      }
+    }
+  }, [showCreateForm, loggedInEmail]);
 
   useEffect(() => {
     // НЕ викай loadItems при view "detail" – иначе race с setSelectedItem(createdItem) → лилав екран
     if ((loggedInEmail || view === "all") && view !== "detail") {
       loadItems();
     }
-  }, [loggedInEmail, view]);
+  }, [loggedInEmail, view, loadItems]);
 
   // Изчистване на съобщения при смяна на страница
   useEffect(() => {
@@ -240,258 +206,6 @@ function App() {
     }
   }, [view, loggedInEmail]);
 
-  // валидация на парола
-  const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 8) {
-      return t.passwordMinLength;
-    }
-    // Проверка за специален символ (не буква или цифра)
-    const hasSpecialChar = /[^a-zA-Z0-9]/.test(pwd);
-    if (!hasSpecialChar) {
-      return t.passwordSpecialChar;
-    }
-    return null;
-  };
-
-  // auth – register
-  const handleRegister = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    // Ако вече се обработва регистрация, не прави нищо
-    if (isRegistering) {
-      return;
-    }
-    
-    setError(null);
-    setMessage(null);
-    
-    // Валидация на празни полета
-    if (!registerEmail || !registerPassword || !fullName) {
-      setError(language === "bg" ? "Моля, попълнете всички полета" : language === "en" ? "Please fill in all fields" : "Пожалуйста, заполните все поля");
-      return;
-    }
-    
-    // Валидация на паролата
-    const passwordError = validatePassword(registerPassword);
-    if (passwordError) {
-      setError(passwordError);
-      return;
-    }
-    
-    setIsRegistering(true);
-    
-    try {
-      console.log("Register attempt:", { email: registerEmail, fullName });
-      
-      // Timeout 90 сек - Render.com cold start може да отнеме 50-60 сек
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.warn("Registration request timeout after 90 seconds");
-        controller.abort();
-      }, 90000);
-      
-      console.log("Sending registration request to:", `${API_BASE}/auth/register`);
-      const requestStartTime = Date.now();
-      
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email: registerEmail, password: registerPassword, fullName }),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      const requestDuration = Date.now() - requestStartTime;
-      console.log(`Registration request completed in ${requestDuration}ms`);
-      
-      const responseText = await res.text();
-      console.log("Register response status:", res.status, "body:", responseText);
-      
-      // Първо проверяваме дали заявката е успешна
-      if (!res.ok || res.status !== 200) {
-        console.error("Register error response:", responseText);
-        // Опитай се да парсне JSON грешката ако е възможно
-        try {
-          const errorJson = JSON.parse(responseText);
-          throw new Error(errorJson.error || errorJson.message || t.errorRegistration);
-        } catch {
-          throw new Error(responseText || t.errorRegistration);
-        }
-      }
-      
-      // Проверка дали отговорът е успешен (само ако status е 200)
-      const trimmedResponse = responseText.trim();
-      if (trimmedResponse === "REGISTER_OK" || trimmedResponse.includes("REGISTER_OK")) {
-        console.log("Registration successful, logging in user:", registerEmail);
-        setMessage(t.successRegistration);
-        
-        // Изчисти формата първо
-        const registeredEmail = registerEmail; // Запази email преди да изчистиш state
-        setRegisterEmail("");
-        setRegisterPassword("");
-        setFullName("");
-        
-        // След успешна регистрация, автоматично влизаме
-        updateLoggedInEmail(registeredEmail);
-        setView("all");
-        
-        // Изчисти грешките преди да заредим данни
-        setError(null);
-        
-        // Зареди items след успешна регистрация с по-дълго забавяне за да се обнови state
-        setTimeout(() => {
-          console.log("Loading items after registration, loggedInEmail:", registeredEmail);
-          loadItems();
-          // Не зареждаме любими веднага - ще се заредят когато потребителят отвори страницата
-          setFavorites([]);
-        }, 300);
-      } else {
-        console.error("Registration failed - unexpected response:", trimmedResponse);
-        throw new Error(trimmedResponse || t.errorRegistration);
-      }
-    } catch (err: any) {
-      console.error("Register error:", err);
-      console.error("Error type:", err.name);
-      console.error("Error message:", err.message);
-      
-      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
-        setError(language === "bg" 
-          ? "Заявката отне твърде много време. Моля, проверете интернет връзката и опитайте отново." 
-          : language === "en" 
-          ? "Request took too long. Please check your internet connection and try again." 
-          : "Запрос занял слишком много времени. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
-      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-        setError(language === "bg" 
-          ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
-          : language === "en" 
-          ? "Cannot connect to server. Please check your internet connection and try again." 
-          : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
-      } else if (err.message?.includes('Email already in use') || err.message?.includes('already exists')) {
-        setError(language === "bg" 
-          ? "Този email вече се използва. Моля, използвайте друг email." 
-          : language === "en" 
-          ? "This email is already in use. Please use a different email." 
-          : "Этот email уже используется. Пожалуйста, используйте другой email.");
-      } else {
-        const errorMsg = err.message || String(err) || (language === "bg" ? "Грешка при регистрация" : language === "en" ? "Registration error" : "Ошибка регистрации");
-        setError(errorMsg);
-      }
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
-  // auth – login
-  const handleLogin = async (e: FormEvent) => {
-    e.preventDefault();
-    if (isLoggingIn) return;
-    
-    setError(null);
-    setMessage(null);
-    
-    // Валидация на празни полета
-    if (!loginEmail || !loginPassword) {
-      setError(language === "bg" ? "Моля, попълнете email и парола" : language === "en" ? "Please enter email and password" : "Пожалуйста, введите email и пароль");
-      return;
-    }
-    
-    setIsLoggingIn(true);
-    
-    try {
-      console.log("Login attempt:", { email: loginEmail });
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-      
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      const responseText = await res.text();
-      console.log("Login response status:", res.status, "body:", responseText);
-      
-      // Първо проверяваме дали заявката е успешна
-      if (!res.ok || res.status !== 200) {
-        console.error("Login error response:", responseText);
-        // Опитай се да парсне JSON грешката ако е възможно
-        try {
-          const errorJson = JSON.parse(responseText);
-          throw new Error(errorJson.error || errorJson.message || t.errorLogin);
-        } catch {
-          throw new Error(responseText || t.errorLogin);
-        }
-      }
-      
-      // Проверка дали отговорът е успешен (само ако status е 200)
-      const trimmedResponse = responseText.trim();
-      if (trimmedResponse === "LOGIN_OK" || trimmedResponse.includes("LOGIN_OK")) {
-        console.log("Login successful, setting loggedInEmail:", loginEmail);
-        
-        // Изчисти формата първо
-        const loggedInUserEmail = loginEmail; // Запази email преди да изчистиш state
-        setLoginEmail("");
-        setLoginPassword("");
-        
-        // Задай loggedInEmail и view
-        updateLoggedInEmail(loggedInUserEmail);
-        setMessage(t.successLogin);
-        setView("all"); // След успешен вход, отиваме на обявите
-        
-        // Изчисти грешките преди да заредим данни
-        setError(null);
-        
-        // Изчисти любимите - ще се заредят когато потребителят отвори страницата
-        setFavorites([]);
-        setFavoriteItemIds(new Set());
-        
-        // Зареди items след успешен вход с по-дълго забавяне за да се обнови state
-        setTimeout(() => {
-          console.log("Loading items after login, loggedInEmail:", loggedInUserEmail);
-          loadItems();
-        }, 300);
-      } else {
-        console.error("Login failed - unexpected response:", trimmedResponse);
-        throw new Error(trimmedResponse || t.errorLogin);
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
-        setError(language === "bg" 
-          ? "Заявката отне твърде много време. Моля, проверете интернет връзката и опитайте отново." 
-          : language === "en" 
-          ? "Request took too long. Please check your internet connection and try again." 
-          : "Запрос занял слишком много времени. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
-      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-        setError(language === "bg" 
-          ? "Не може да се свърже със сървъра. Моля, проверете интернет връзката и опитайте отново." 
-          : language === "en" 
-          ? "Cannot connect to server. Please check your internet connection and try again." 
-          : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
-      } else {
-        setError(err.message || String(err) || t.errorLogin);
-      }
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleLogout = () => {
-    updateLoggedInEmail(null);
-    setMessage(t.loggedOut);
-    setLoginEmail("");
-    setLoginPassword("");
-    setRegisterEmail("");
-    setRegisterPassword("");
-    setFullName("");
-    setSelectedItem(null);
-    setReviews([]);
-    setView("login");
-  };
-
   // Обработка на VIP плащане
   const handleVipPayment = async (cardNumber: string, cardHolder: string, expiryDate: string, _cvv: string) => {
     if (!pendingVipItemId || !loggedInEmail) {
@@ -514,7 +228,7 @@ function App() {
       // Стъпка 1: Създай плащането с данни за картата
       const createPaymentRes = await fetch(`${API_BASE}/vip-payment/create`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           itemId: pendingVipItemId,
           ownerEmail: loggedInEmail,
@@ -545,7 +259,7 @@ function App() {
       // Стъпка 2: Завърши плащането (симулация - в реална система тук ще има интеграция с платежен процесор)
       const completePaymentRes = await fetch(`${API_BASE}/vip-payment/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           paymentId: paymentId,
           ownerEmail: loggedInEmail,
@@ -571,7 +285,7 @@ function App() {
       // Стъпка 3: Активирай VIP статуса
       const activateVipRes = await fetch(`${API_BASE}/vip/activate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           ownerEmail: loggedInEmail,
           itemId: pendingVipItemId,
@@ -717,7 +431,7 @@ function App() {
       const timeoutId = setTimeout(() => controller.abort(), 120000);
       let res = await fetch(`${API_BASE}/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({ ...createPayload, imageUrl: null }),
         signal: controller.signal,
       });
@@ -766,6 +480,7 @@ function App() {
             const uploadTimeout = setTimeout(() => uploadController.abort(), 60000); // 60 сек на снимка
             const uploadRes = await fetch(`${API_BASE}/upload/${createdItem.id}`, {
               method: "POST",
+              headers: withAuth(),
               body: formData,
               signal: uploadController.signal,
             });
@@ -844,77 +559,6 @@ function App() {
     } finally {
       setIsCreatingListing(false);
     }
-  };
-
-  // Функция за компресия на снимка - по-агресивна за Render.com (ограничена памет)
-  const compressImage = (file: File, maxSizeMB: number = 0.8): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Максимална ширина/височина 1280px - по-малко = по-бързо качване
-          const maxDimension = 1280;
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = (height / width) * maxDimension;
-              width = maxDimension;
-            } else {
-              width = (width / height) * maxDimension;
-              height = maxDimension;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Could not get canvas context'));
-            return;
-          }
-          
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          let quality = 0.85;
-          const maxSizeBytes = maxSizeMB * 1024 * 1024;
-          
-          const tryCompress = () => {
-            canvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  reject(new Error('Failed to compress image'));
-                  return;
-                }
-                
-                if (blob.size <= maxSizeBytes || quality <= 0.1) {
-                  const compressedFile = new File([blob], file.name, {
-                    type: 'image/jpeg',
-                    lastModified: Date.now(),
-                  });
-                  console.log(`Image compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
-                  resolve(compressedFile);
-                } else {
-                  quality -= 0.1;
-                  tryCompress();
-                }
-              },
-              'image/jpeg',
-              quality
-            );
-          };
-          
-          tryCompress();
-        };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
   };
 
   // handler за промяна на файловете при създаване (до 5 снимки) – ДОБАВЯ към съществуващите
@@ -1047,6 +691,7 @@ function App() {
       
       const res = await fetch(url, {
         signal: controller.signal,
+        headers: withAuth(),
       });
       
       clearTimeout(timeoutId);
@@ -1105,6 +750,7 @@ function App() {
       
       const res = await fetch(url, {
         signal: controller.signal,
+        headers: withAuth(),
       });
       
       clearTimeout(timeoutId);
@@ -1159,7 +805,9 @@ function App() {
   const loadMyOrders = async () => {
     if (!loggedInEmail) return;
     try {
-      const res = await fetch(`${API_BASE}/item-orders/customer/${encodeURIComponent(loggedInEmail)}`);
+      const res = await fetch(`${API_BASE}/item-orders/customer/${encodeURIComponent(loggedInEmail)}`, {
+        headers: withAuth(),
+      });
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
       setMyOrders(data);
@@ -1173,7 +821,9 @@ function App() {
   const loadSellerOrders = async () => {
     if (!loggedInEmail) return;
     try {
-      const res = await fetch(`${API_BASE}/item-orders/seller/${encodeURIComponent(loggedInEmail)}`);
+      const res = await fetch(`${API_BASE}/item-orders/seller/${encodeURIComponent(loggedInEmail)}`, {
+        headers: withAuth(),
+      });
       if (!res.ok) throw new Error("Failed to load seller orders");
       const data = await res.json();
       setSellerOrders(data);
@@ -1202,6 +852,7 @@ function App() {
       
       const res = await fetch(`${API_BASE}/favorites/${encodeURIComponent(loggedInEmail)}`, {
         signal: controller.signal,
+        headers: withAuth(),
       });
       
       clearTimeout(timeoutId);
@@ -1286,7 +937,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/favorites`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({ userEmail: loggedInEmail, itemId }),
       });
       if (!res.ok) {
@@ -1306,6 +957,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/favorites/${encodeURIComponent(loggedInEmail)}/${itemId}`, {
         method: "DELETE",
+        headers: withAuth(),
       });
       if (!res.ok) throw new Error("Failed to remove from favorites");
       await loadFavorites();
@@ -1324,7 +976,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/vip/activate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({ ownerEmail: loggedInEmail, itemId }),
       });
       if (!res.ok) {
@@ -1347,7 +999,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/item-orders/${orderId}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error("Failed to update order status");
@@ -1383,7 +1035,7 @@ function App() {
       
       const res = await fetch(`${API_BASE}/items/${selectedItem.id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           senderEmail: loggedInEmail,
           content: newQuestion.trim(),
@@ -1451,7 +1103,7 @@ function App() {
       
       const res = await fetch(`${API_BASE}/items/messages/${messageId}/response`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           response: newAnswer[messageId].trim(),
         }),
@@ -1524,7 +1176,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/item-orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           customerEmail: customerEmail.trim(),
           customerName: customerName.trim(),
@@ -1570,7 +1222,7 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/items/${selectedItem.id}/reviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({
           authorEmail: loggedInEmail || "guest@example.com",
           rating: reviewRating,
@@ -1613,6 +1265,7 @@ function App() {
 
       const res = await fetch(`${API_BASE}/upload/${selectedItem.id}`, {
         method: "POST",
+        headers: withAuth(),
         body: formData,
       });
       if (!res.ok) {
@@ -1706,20 +1359,7 @@ function App() {
         />
       )}
 
-      {(error || message) && (
-        <div className="alerts-container">
-          {error && (
-            <div className="alert alert-error">
-              <strong>{t.error}</strong> {error}
-            </div>
-          )}
-          {message && (
-            <div className="alert alert-success">
-              {message}
-            </div>
-          )}
-        </div>
-      )}
+      <AppAlerts language={language} error={error} message={message} />
 
       {/* ДЕТАЙЛЕН VIEW - показва се когато view === "detail" */}
       {view === "detail" && selectedItem && selectedItem.id != null && (
@@ -1836,103 +1476,46 @@ function App() {
       )}
 
       {/* СПИСЪК С ОБЯВИ - "all" за всички, "mine" само за логнати */}
-      {(view === "all" || (view === "mine" && loggedInEmail)) && (
-        <section className="listings-section">
-          <div className="listings-main">
-            <div className="listings-header">
-              <h2>{view === "all" ? t.allListings : t.myListings}</h2>
-              {view === "mine" && loggedInEmail && (
-                <button
-                  className="btn-primary"
-                  onClick={() => setShowCreateForm(!showCreateForm)}
-                >
-                  {showCreateForm ? t.cancel : t.createListing}
-                </button>
-              )}
-            </div>
+      <ListingsSection
+        view={view}
+        loggedInEmail={loggedInEmail}
+        language={language}
+        items={items}
+        selectedCategory={selectedCategory}
+        showCreateForm={showCreateForm}
+        contactPhonePrefilled={contactPhonePrefilled}
+        isCreatingListing={isCreatingListing}
+        newItemTitle={newItemTitle}
+        newItemDescription={newItemDescription}
+        newItemPrice={newItemPrice}
+        newItemCategory={newItemCategory}
+        newItemContactEmail={newItemContactEmail}
+        newItemContactPhone={newItemContactPhone}
+        newItemPaymentMethod={newItemPaymentMethod}
+        newItemIsVip={newItemIsVip}
+        newItemFiles={newItemFiles}
+        onToggleCreateForm={() => setShowCreateForm(!showCreateForm)}
+        onCategoryChange={setSelectedCategory}
+        onItemClick={openItem}
+        onTitleChange={setNewItemTitle}
+        onDescriptionChange={setNewItemDescription}
+        onPriceChange={setNewItemPrice}
+        onNewItemCategoryChange={setNewItemCategory}
+        onContactEmailChange={setNewItemContactEmail}
+        onContactPhoneChange={setNewItemContactPhone}
+        onPaymentMethodChange={setNewItemPaymentMethod}
+        onVipChange={setNewItemIsVip}
+        onFilesChange={handleNewItemFilesChange}
+        onRemoveFile={handleRemoveNewItemFile}
+        onCreateSubmit={handleCreateListing}
+      />
 
-            {/* Форма за създаване на обява */}
-            <CreateListingForm
-              show={showCreateForm && !!loggedInEmail}
-              title={newItemTitle}
-              description={newItemDescription}
-              price={newItemPrice}
-              category={newItemCategory}
-              contactEmail={newItemContactEmail}
-              contactPhone={newItemContactPhone}
-              contactPhonePrefilled={contactPhonePrefilled}
-              paymentMethod={newItemPaymentMethod}
-              isVip={newItemIsVip}
-              language={language}
-              files={newItemFiles}
-              isCreating={isCreatingListing}
-              loggedInEmail={loggedInEmail}
-              onTitleChange={setNewItemTitle}
-              onDescriptionChange={setNewItemDescription}
-              onPriceChange={setNewItemPrice}
-              onCategoryChange={setNewItemCategory}
-              onContactEmailChange={setNewItemContactEmail}
-              onContactPhoneChange={setNewItemContactPhone}
-              onPaymentMethodChange={setNewItemPaymentMethod}
-              onVipChange={setNewItemIsVip}
-              onFilesChange={handleNewItemFilesChange}
-              onRemoveFile={handleRemoveNewItemFile}
-              onSubmit={handleCreateListing}
-            />
-
-            {/* Филтър по категория - скрит когато формата за създаване е отворена */}
-            {!showCreateForm && (
-              <div className="category-filter">
-                <label htmlFor="main-category-filter">
-                  <strong>{t.category}</strong>
-                  <select
-                    id="main-category-filter"
-                    name="category"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {getCategoryLabel(cat, t)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            )}
-
-            {view === "mine" && !loggedInEmail && (
-              <p className="info-text">
-                {t.loginToSeeListings}
-              </p>
-            )}
-
-            <ItemList
-              items={items}
-              view={view}
-              loggedInEmail={loggedInEmail}
-              selectedCategory={selectedCategory}
-              language={language}
-              onItemClick={openItem}
-            />
-          </div>
-        </section>
-      )}
-
-      {/* FALLBACK - ако нищо не се показва */}
-      {!loggedInEmail && view !== "login" && view !== "register" && view !== "detail" && view !== "favorites" && view !== "orders" && view !== "messages" && view !== "all" && view !== "mine" && view !== "vip" && view !== "home" && (
-        <div style={{ padding: "40px", textAlign: "center", background: "rgba(255, 255, 255, 0.95)", margin: "40px auto", maxWidth: "600px", borderRadius: "12px" }}>
-          <h2>{t.welcomeToWebShop}</h2>
-          <p>{t.pleaseLoginOrRegister}</p>
-          <button 
-            className="btn-primary" 
-            onClick={() => setView("login")}
-            style={{ marginTop: "20px" }}
-          >
-            {t.authTitle}
-          </button>
-        </div>
-      )}
+      <GuestWelcomeFallback
+        language={language}
+        loggedInEmail={loggedInEmail}
+        view={view}
+        onGoLogin={() => setView("login")}
+      />
 
       {/* VIP Payment Form Modal */}
       {showVipPayment && pendingVipItemId && (

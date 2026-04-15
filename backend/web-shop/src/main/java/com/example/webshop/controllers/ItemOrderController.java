@@ -3,7 +3,10 @@ package com.example.webshop.controllers;
 import com.example.webshop.dto.CreateItemOrderRequest;
 import com.example.webshop.models.ItemOrder;
 import com.example.webshop.services.ItemOrderService;
+import com.example.webshop.validation.EmailValidation;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -28,13 +31,21 @@ public class ItemOrderController {
     // GET ORDERS BY CUSTOMER EMAIL
     @GetMapping(value = "/customer/{customerEmail}", produces = "application/json;charset=UTF-8")
     public List<ItemOrder> getOrdersByCustomer(@PathVariable String customerEmail) {
-        return itemOrderService.getOrdersByCustomer(customerEmail);
+        return itemOrderService.getOrdersByCustomer(requireValidEmail(customerEmail));
     }
 
     // GET ORDERS FOR SELLER (by item owner email)
     @GetMapping(value = "/seller/{ownerEmail}", produces = "application/json;charset=UTF-8")
     public List<ItemOrder> getOrdersForSeller(@PathVariable String ownerEmail) {
-        return itemOrderService.getOrdersForSeller(ownerEmail);
+        return itemOrderService.getOrdersForSeller(requireValidEmail(ownerEmail));
+    }
+
+    private static String requireValidEmail(String email) {
+        String e = EmailValidation.trim(email);
+        if (!EmailValidation.isValid(e)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid email address");
+        }
+        return e;
     }
 
     // UPDATE ORDER STATUS

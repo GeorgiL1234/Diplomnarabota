@@ -2,6 +2,8 @@ package com.example.webshop.config;
 
 import com.example.webshop.models.Item;
 import com.example.webshop.repositories.ItemRepository;
+
+import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -235,10 +237,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void createItem(String title, String description, double price, String category, String phone) {
-        createItem(title, description, price, category, phone, null);
+        createItem(title, description, BigDecimal.valueOf(price), category, phone, null);
     }
 
     private void createItem(String title, String description, double price, String category, String phone, String imageUrl) {
+        createItem(title, description, BigDecimal.valueOf(price), category, phone, imageUrl);
+    }
+
+    private void createItem(String title, String description, BigDecimal price, String category, String phone, String imageUrl) {
         Item item = new Item();
         item.setTitle(title);
         item.setDescription(description);

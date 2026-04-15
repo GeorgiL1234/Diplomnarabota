@@ -1,6 +1,7 @@
 package com.example.webshop.models;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,8 +18,8 @@ public class VipPayment {
     @Column(nullable = false)
     private String ownerEmail;
 
-    @Column(nullable = false)
-    private Double amount; // 2.0 EUR
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal amount;
 
     @Column(nullable = false)
     private String status; // PENDING, COMPLETED, FAILED
@@ -44,7 +45,7 @@ public class VipPayment {
     public VipPayment() {
     }
 
-    public VipPayment(Long itemId, String ownerEmail, Double amount) {
+    public VipPayment(Long itemId, String ownerEmail, BigDecimal amount) {
         this.itemId = itemId;
         this.ownerEmail = ownerEmail;
         this.amount = amount;
@@ -77,11 +78,11 @@ public class VipPayment {
         this.ownerEmail = ownerEmail;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

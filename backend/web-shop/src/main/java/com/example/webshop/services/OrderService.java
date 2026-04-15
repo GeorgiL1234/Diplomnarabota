@@ -1,11 +1,16 @@
 package com.example.webshop.services;
 
 import com.example.webshop.dto.CreateOrderRequest;
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.*;
+import org.springframework.http.HttpStatus;
 import com.example.webshop.repositories.OrderRepository;
+import com.example.webshop.validation.EmailValidation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,13 +26,17 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(CreateOrderRequest request) {
+        String customerEmail = EmailValidation.trim(request.getCustomerEmail());
+        if (customerEmail.isEmpty() || !EmailValidation.isValid(customerEmail)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid customer email address");
+        }
         Order order = new Order();
-        order.setCustomerEmail(request.getCustomerEmail());
+        order.setCustomerEmail(customerEmail);
         order.setStatus(OrderStatus.CREATED);
         order.setCreatedAt(LocalDateTime.now());
 
         List<OrderItem> items = new ArrayList<>();
-        double total = 0;
+        BigDecimal total = BigDecimal.ZERO;
 
         for (CreateOrderRequest.ItemRequest i : request.getItems()) {
             OrderItem item = new OrderItem();
@@ -36,12 +45,13 @@ public class OrderService {
             item.setQuantity(i.getQuantity());
             item.setOrder(order);
 
-            total += i.getPrice() * i.getQuantity();
+            BigDecimal line = i.getPrice().multiply(BigDecimal.valueOf(i.getQuantity()));
+            total = total.add(line);
             items.add(item);
         }
 
         order.setItems(items);
-        order.setTotalPrice(total);
+        order.setTotalPrice(total.setScale(4, RoundingMode.HALF_UP));
 
         return orderRepository.save(order);
     }
@@ -53,7 +63,7 @@ public class OrderService {
     @Transactional
     public Order updateStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
 
         order.setStatus(status);
         return orderRepository.save(order);

@@ -1,6 +1,7 @@
 package com.example.webshop.models;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,9 @@ public class Order {
     private Long id;
 
     private String customerEmail;
-    private double totalPrice;
+
+    @Column(precision = 19, scale = 4)
+    private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
@@ -37,11 +40,11 @@ public class Order {
         this.customerEmail = customerEmail;
     }
 
-    public double getTotalPrice() {
+    public BigDecimal getTotalPrice() {
         return totalPrice;
     }
 
-    public void setTotalPrice(double totalPrice) {
+    public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
     }
 

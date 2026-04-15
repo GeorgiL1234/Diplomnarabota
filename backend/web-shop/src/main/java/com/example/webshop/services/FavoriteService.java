@@ -1,7 +1,9 @@
 package com.example.webshop.services;
 
+import com.example.webshop.exception.ApiException;
 import com.example.webshop.models.Favorite;
 import com.example.webshop.models.Item;
+import org.springframework.http.HttpStatus;
 import com.example.webshop.repositories.FavoriteRepository;
 import com.example.webshop.repositories.ItemRepository;
 import org.springframework.stereotype.Service;
@@ -27,12 +29,12 @@ public class FavoriteService {
     @Transactional
     public Favorite addFavorite(String userEmail, Long itemId) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
 
         // Проверка дали вече е добавен в любими
         favoriteRepository.findByUserEmailAndItemId(userEmail, itemId)
                 .ifPresent(f -> {
-                    throw new RuntimeException("Item already in favorites");
+                    throw new ApiException(HttpStatus.CONFLICT, "Item already in favorites");
                 });
 
         Favorite favorite = new Favorite(userEmail, item);

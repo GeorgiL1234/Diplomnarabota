@@ -6,6 +6,7 @@ import com.example.webshop.models.User;
 import com.example.webshop.repositories.CartItemRepository;
 import com.example.webshop.repositories.ItemRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -33,7 +34,14 @@ public class CartService {
         return cartRepo.save(cartItem);
     }
 
+    @Transactional
     public void clearCart(User user) {
+        cartRepo.deleteByUser(user);
+    }
+
+    /** Изтрива всички артикули в количката за потребителя (изисква транзакция за derived delete). */
+    @Transactional
+    public void deleteByUser(User user) {
         cartRepo.deleteByUser(user);
     }
 }

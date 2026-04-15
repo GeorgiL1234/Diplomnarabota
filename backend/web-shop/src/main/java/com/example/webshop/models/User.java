@@ -1,5 +1,6 @@
 package com.example.webshop.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,7 +14,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    /** Хеш; само вход (register/login). Никога не се сериализира в JSON отговори. */
     @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     private String fullName;

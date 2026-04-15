@@ -3,6 +3,8 @@ package com.example.webshop.models;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
+
 @Entity
 public class OrderItem {
 
@@ -11,7 +13,9 @@ public class OrderItem {
     private Long id;
 
     private String productName;
-    private double price;
+
+    @Column(precision = 19, scale = 4)
+    private BigDecimal price;
     private int quantity;
 
     @ManyToOne
@@ -31,11 +35,11 @@ public class OrderItem {
         this.productName = productName;
     }
 
-    public double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
