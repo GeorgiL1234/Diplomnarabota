@@ -6,6 +6,7 @@ import com.example.webshop.repositories.ItemRepository;
 import com.example.webshop.services.VipPaymentService;
 import com.example.webshop.validation.EmailValidation;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;

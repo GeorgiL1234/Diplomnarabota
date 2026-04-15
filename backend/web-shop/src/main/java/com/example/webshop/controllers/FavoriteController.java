@@ -4,6 +4,7 @@ import com.example.webshop.models.Favorite;
 import com.example.webshop.services.FavoriteService;
 import com.example.webshop.validation.EmailValidation;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
