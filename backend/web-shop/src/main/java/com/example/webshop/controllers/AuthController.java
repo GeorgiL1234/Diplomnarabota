@@ -29,7 +29,6 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
-    /** Лека заявка за "подгряване" на Render.com - предотвратява cold start при login/register */
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("OK");

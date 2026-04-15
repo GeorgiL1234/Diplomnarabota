@@ -2,6 +2,7 @@ package com.example.webshop.controllers;
 
 import com.example.webshop.models.Review;
 import com.example.webshop.services.ReviewService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +16,12 @@ public class ReviewController {
 
     public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
+    }
+
+    /** Лека заявка за "подгряване" на Render.com – health check за reviews */
+    @GetMapping("/reviews/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     // CREATE REVIEW (UTF-8 FIX)

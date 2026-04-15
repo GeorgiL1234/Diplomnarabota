@@ -26,6 +26,12 @@ public class MessageController {
         this.messageService = messageService;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за messages */
+    @GetMapping("/messages/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     // CREATE MESSAGE/QUESTION
     @PostMapping(value = "/{itemId}/messages", consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
     public Message addMessage(

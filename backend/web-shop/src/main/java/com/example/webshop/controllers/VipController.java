@@ -23,6 +23,12 @@ public class VipController {
         this.vipPaymentService = vipPaymentService;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за VIP */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     // ACTIVATE VIP FOR ITEM (deprecated - use /vip-payment/complete instead)
     @PostMapping(value = "/activate", consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
     public Item activateVip(@RequestBody Map<String, Object> request) {

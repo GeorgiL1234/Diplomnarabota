@@ -22,6 +22,12 @@ public class ItemOrderController {
         this.itemOrderService = itemOrderService;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за item-orders */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     // CREATE ITEM ORDER
     @PostMapping(consumes = "application/json;charset=UTF-8", produces = "application/json;charset=UTF-8")
     public ItemOrder createOrder(@RequestBody CreateItemOrderRequest request) {

@@ -21,6 +21,12 @@ public class FavoriteController {
         this.favoriteService = favoriteService;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за favorites */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     // GET USER FAVORITES
     @GetMapping(value = "/{email}", produces = "application/json;charset=UTF-8")
     public List<Favorite> getUserFavorites(@PathVariable String email) {

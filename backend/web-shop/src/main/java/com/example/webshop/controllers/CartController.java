@@ -24,6 +24,12 @@ public class CartController {
         this.userRepo = userRepo;
     }
 
+    /** Лека заявка за "подгряване" на Render.com – health check за cart */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @GetMapping
     public List<CartItem> getCart(Authentication auth) {
         User user = requireUser(auth);

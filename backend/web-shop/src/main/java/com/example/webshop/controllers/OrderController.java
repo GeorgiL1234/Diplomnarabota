@@ -4,6 +4,7 @@ import com.example.webshop.dto.CreateOrderRequest;
 import com.example.webshop.models.Order;
 import com.example.webshop.models.OrderStatus;
 import com.example.webshop.services.OrderService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,12 @@ public class OrderController {
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
+    }
+
+    /** Лека заявка за "подгряване" на Render.com – health check за orders */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
 
     // CREATE ORDER
