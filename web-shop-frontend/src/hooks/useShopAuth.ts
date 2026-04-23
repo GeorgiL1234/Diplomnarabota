@@ -29,6 +29,7 @@ export function useShopAuth({
   setReviews,
 }: Params) {
   const t: T = translations[language] || translations["bg"];
+  const AUTH_TIMEOUT_MS = 240000;
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -59,6 +60,65 @@ export function useShopAuth({
     [t.passwordMinLength, t.passwordSpecialChar]
   );
 
+  const warmAuthBackend = useCallback(async () => {
+    const warm = async (url: string, timeoutMs: number) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        await fetch(url, { method: "GET", signal: controller.signal });
+      } catch {
+        // best-effort warm-up only
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    // auth + DB-related endpoint; изпълняват се паралелно за по-бърз cold-start warm-up.
+    await Promise.allSettled([
+      warm(`${API_BASE}/auth/health`, 25000),
+      warm(`${API_BASE}/items/list`, 25000),
+    ]);
+  }, []);
+
+  const postAuthWithRetry = useCallback(
+    async (endpoint: string, payload: Record<string, string>) => {
+      const makeRequest = async (timeoutMs: number) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          return await fetch(`${API_BASE}${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json; charset=UTF-8" },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
+
+      // Първо подгряваме backend-а (Render cold start + DB wake-up), после изпращаме auth заявката.
+      await warmAuthBackend();
+
+      try {
+        return await makeRequest(AUTH_TIMEOUT_MS);
+      } catch (err: unknown) {
+        const e = err as { name?: string; message?: string };
+        const transient =
+          e.name === "AbortError" ||
+          e.message?.includes("aborted") ||
+          e.message?.includes("Failed to fetch") ||
+          e.message?.includes("NetworkError");
+        if (!transient) throw err;
+
+        // Render/DB cold start: one warm-up + one retry
+        await warmAuthBackend();
+        return await makeRequest(AUTH_TIMEOUT_MS);
+      }
+    },
+    [warmAuthBackend]
+  );
+
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     if (isRegistering) return;
@@ -81,15 +141,11 @@ export function useShopAuth({
     }
     setIsRegistering(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email: registerEmail, password: registerPassword, fullName }),
-        signal: controller.signal,
+      const res = await postAuthWithRetry("/auth/register", {
+        email: registerEmail,
+        password: registerPassword,
+        fullName,
       });
-      clearTimeout(timeoutId);
       const responseText = await res.text();
       if (!res.ok || res.status !== 200) {
         try {
@@ -127,10 +183,10 @@ export function useShopAuth({
       if (er.name === "AbortError" || er.message?.includes("aborted")) {
         setError(
           language === "bg"
-            ? "Заявката отне твърде много време. Моля, проверете интернет връзката и опитайте отново."
+            ? "Сървърът отговаря бавно (възможен cold start). Изчакайте около минута и опитайте отново."
             : language === "en"
-              ? "Request took too long. Please check your internet connection and try again."
-              : "Запрос занял слишком много времени. Пожалуйста, проверьте интернет-соединение и попробуйте снова."
+              ? "Server is responding slowly (possible cold start). Wait about a minute and try again."
+              : "Сервер отвечает медленно (возможен cold start). Подождите около минуты и попробуйте снова."
         );
       } else if (er.message?.includes("Failed to fetch") || er.message?.includes("NetworkError")) {
         setError(
@@ -173,15 +229,10 @@ export function useShopAuth({
     }
     setIsLoggingIn(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-        signal: controller.signal,
+      const res = await postAuthWithRetry("/auth/login", {
+        email: loginEmail,
+        password: loginPassword,
       });
-      clearTimeout(timeoutId);
       const responseText = await res.text();
       if (!res.ok || res.status !== 200) {
         try {
@@ -217,10 +268,10 @@ export function useShopAuth({
       if (er.name === "AbortError" || er.message?.includes("aborted")) {
         setError(
           language === "bg"
-            ? "Заявката отне твърде много време. Моля, проверете интернет връзката и опитайте отново."
+            ? "Сървърът отговаря бавно (възможен cold start). Изчакайте около минута и опитайте отново."
             : language === "en"
-              ? "Request took too long. Please check your internet connection and try again."
-              : "Запрос занял слишком много времени. Пожалуйста, проверьте интернет-соединение и попробуйте снова."
+              ? "Server is responding slowly (possible cold start). Wait about a minute and try again."
+              : "Сервер отвечает медленно (возможен cold start). Подождите около минуты и попробуйте снова."
         );
       } else if (er.message?.includes("Failed to fetch") || er.message?.includes("NetworkError")) {
         setError(

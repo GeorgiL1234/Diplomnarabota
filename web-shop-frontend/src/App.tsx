@@ -165,13 +165,13 @@ function App() {
     }
   }, [view]);
 
-  // Подгряване на backend - /items/ping е в същия controller като основната логика (Render.com cold start ~50 сек)
+  // Подгряване на backend (Render cold start): ping + auth + заявка към БД.
   const warmBackend = () => {
-    fetch(`${API_BASE}/items/ping`, { method: "GET" }).catch(() => 
-      fetch(`${API_BASE}/actuator/health`, { method: "GET" }).catch(() => 
-        fetch(`${API_BASE}/items/list`, { method: "GET" }).catch(() => {})
-      )
-    );
+    const noop = () => {};
+    fetch(`${API_BASE}/items/ping`, { method: "GET" }).catch(noop);
+    fetch(`${API_BASE}/auth/health`, { method: "GET" }).catch(noop);
+    fetch(`${API_BASE}/items/list`, { method: "GET" }).catch(noop);
+    fetch(`${API_BASE}/actuator/health`, { method: "GET" }).catch(noop);
   };
   useEffect(() => { warmBackend(); }, []);
   useEffect(() => {
