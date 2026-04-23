@@ -119,6 +119,14 @@ export function useShopAuth({
     [warmAuthBackend]
   );
 
+  const parseJsonSafely = useCallback((raw: string): Record<string, unknown> | null => {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     if (isRegistering) return;
@@ -147,21 +155,18 @@ export function useShopAuth({
         fullName,
       });
       const responseText = await res.text();
+      const responseJson = parseJsonSafely(responseText);
       if (!res.ok || res.status !== 200) {
-        try {
-          const errorJson = JSON.parse(responseText);
-          throw new Error(errorJson.error || errorJson.message || t.errorRegistration);
-        } catch {
-          throw new Error(responseText || t.errorRegistration);
-        }
+        const msgFromJson =
+          typeof responseJson?.error === "string"
+            ? responseJson.error
+            : typeof responseJson?.message === "string"
+              ? responseJson.message
+              : null;
+        throw new Error(msgFromJson || responseText || t.errorRegistration);
       }
-      let authData: { accessToken?: string; email?: string };
-      try {
-        authData = JSON.parse(responseText);
-      } catch {
-        throw new Error(t.errorRegistration);
-      }
-      if (authData.accessToken && authData.email) {
+      const authData = responseJson as { accessToken?: string; email?: string } | null;
+      if (authData?.accessToken && authData?.email) {
         localStorage.setItem(AUTH_TOKEN_KEY, authData.accessToken);
         setMessage(t.successRegistration);
         const registeredEmail = authData.email;
@@ -175,6 +180,15 @@ export function useShopAuth({
           loadItems();
           setFavorites([]);
         }, 300);
+      } else if (responseText.trim().toUpperCase().includes("REGISTER_OK")) {
+        // Backward compatibility: някои backend версии връщат text/plain REGISTER_OK.
+        setMessage(t.successRegistration);
+        setRegisterPassword("");
+        setFullName("");
+        setLoginEmail(registerEmail);
+        setLoginPassword("");
+        setView("login");
+        setError(null);
       } else {
         throw new Error(t.errorRegistration);
       }
