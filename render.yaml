@@ -10,12 +10,28 @@ services:
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: webshop-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: webshop-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: webshop-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: webshop-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: webshop-db
+          property: password
       - key: JAVA_VERSION
         value: 17
-    disk:
-      name: webshop-data
-      mountPath: /opt/render/project/src/backend/web-shop/data
-      sizeGB: 1
 
   # Frontend Service
   - type: web
@@ -29,3 +45,8 @@ services:
           type: web
           name: webshop-backend
           property: host
+
+databases:
+  - name: webshop-db
+    databaseName: webshop
+    user: webshop

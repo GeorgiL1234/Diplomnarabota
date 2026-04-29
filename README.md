@@ -19,7 +19,7 @@
 - **Spring Boot** - Framework за Java приложения
 - **Spring Security** - Автентикация и авторизация
 - **JWT (JSON Web Tokens)** - За сигурност
-- **H2 Database** - Вградена база данни
+- **PostgreSQL** - Релационна база данни
 - **Maven** - Dependency management
 
 ### Frontend
@@ -35,6 +35,7 @@
 - **Java JDK 17 или по-нова версия**
 - **Node.js 18+ и npm** (или yarn)
 - **Maven 3.6+** (или използвайте Maven Wrapper, който е включен)
+- **PostgreSQL 16+** (или Docker Compose с готовата PostgreSQL услуга)
 
 ### Проверка на версиите
 
@@ -242,7 +243,7 @@ Diplomnarabota/
 
 Основни настройки:
 - **Порт:** 8080
-- **База данни:** H2 (вградена, файл: `webshopdb.mv.db`)
+- **База данни:** PostgreSQL (`webshop` по подразбиране)
 - **JWT Secret:** Конфигуриран в `SecurityConfig.java`
 
 ### Frontend конфигурация
@@ -256,13 +257,11 @@ Diplomnarabota/
 
 ## 🗄️ База данни
 
-Приложението използва **H2 Database** (вградена база данни). Базата данни се създава автоматично при първото стартиране.
+Приложението използва **PostgreSQL**. Таблиците се създават/обновяват автоматично чрез Hibernate `ddl-auto=update`.
 
-Файлът на базата данни се намира в: `backend/web-shop/data/webshopdb.mv.db`
+По подразбиране backend-ът се свързва към: `jdbc:postgresql://localhost:5432/webshop`.
 
-**Забележка:** Ако искате да изтриете базата данни и да започнете отново, просто изтрийте файловете:
-- `webshopdb.mv.db`
-- `webshopdb.trace.db`
+Локалните настройки могат да се променят чрез `SPRING_DATASOURCE_*` или `DB_*` environment variables.
 
 ## 🌐 API Endpoints
 
