@@ -10,23 +10,17 @@ services:
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: production
-      - key: DB_HOST
+      # Use Render's assembled connection string to avoid mismatches
+      # between DB_* vars and what Spring Boot expects.
+      - key: SPRING_DATASOURCE_URL
         fromDatabase:
           name: webshop-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: webshop-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: webshop-db
-          property: database
-      - key: DB_USER
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: webshop-db
           property: user
-      - key: DB_PASSWORD
+      - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase:
           name: webshop-db
           property: password
