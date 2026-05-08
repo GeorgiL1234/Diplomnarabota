@@ -3,24 +3,33 @@ services:
   - type: web
     name: webshop-backend
     env: java
-    buildCommand: cd backend/web-shop && ./mvnw clean package -DskipTests
+    buildCommand: cd backend/web-shop && chmod +x mvnw && ./mvnw clean package -DskipTests
     startCommand: cd backend/web-shop && java -jar target/web-shop-0.0.1-SNAPSHOT.jar
     envVars:
       - key: PORT
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: production
-      # Use Render's assembled connection string to avoid mismatches
-      # between DB_* vars and what Spring Boot expects.
-      - key: SPRING_DATASOURCE_URL
+      # Populate DB_* vars and let Spring compose JDBC URL
+      # from application-production.properties:
+      # jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - key: DB_HOST
         fromDatabase:
           name: webshop-db
-          property: connectionString
-      - key: SPRING_DATASOURCE_USERNAME
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: webshop-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: webshop-db
+          property: database
+      - key: DB_USER
         fromDatabase:
           name: webshop-db
           property: user
-      - key: SPRING_DATASOURCE_PASSWORD
+      - key: DB_PASSWORD
         fromDatabase:
           name: webshop-db
           property: password
