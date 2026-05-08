@@ -24,12 +24,15 @@ public class WebShopApplication {
         if (configuredDatasourceUrl == null || configuredDatasourceUrl.isBlank()) {
             configuredDatasourceUrl = System.getenv("SPRING_DATASOURCE_URL");
         }
-        if (configuredDatasourceUrl != null && !configuredDatasourceUrl.isBlank()) {
+        String databaseUrl = System.getenv("DATABASE_URL");
+        if (databaseUrl == null || databaseUrl.isBlank()) {
+            if (configuredDatasourceUrl != null && !configuredDatasourceUrl.isBlank()) {
+                return;
+            }
             return;
         }
 
-        String databaseUrl = System.getenv("DATABASE_URL");
-        if (databaseUrl == null || databaseUrl.isBlank()) {
+        if (configuredDatasourceUrl != null && !configuredDatasourceUrl.isBlank() && !isLocalhostDatasourceUrl(configuredDatasourceUrl)) {
             return;
         }
 
@@ -83,5 +86,10 @@ public class WebShopApplication {
                 && parts.length == 2 && !parts[1].isBlank()) {
             System.setProperty("spring.datasource.password", parts[1]);
         }
+    }
+
+    private static boolean isLocalhostDatasourceUrl(String datasourceUrl) {
+        String normalized = datasourceUrl.toLowerCase();
+        return normalized.contains("localhost") || normalized.contains("127.0.0.1") || normalized.contains("0.0.0.0");
     }
 }
