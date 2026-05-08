@@ -14,12 +14,6 @@ public class WebShopApplication {
     }
 
     private static void configureDatasourceFromDatabaseUrl() {
-        String activeProfiles = System.getenv("SPRING_PROFILES_ACTIVE");
-        boolean productionProfile = activeProfiles != null && activeProfiles.contains("production");
-        if (!productionProfile) {
-            return;
-        }
-
         String configuredDatasourceUrl = System.getProperty("spring.datasource.url");
         if (configuredDatasourceUrl == null || configuredDatasourceUrl.isBlank()) {
             configuredDatasourceUrl = System.getenv("SPRING_DATASOURCE_URL");
