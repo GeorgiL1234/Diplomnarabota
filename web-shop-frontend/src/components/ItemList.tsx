@@ -8,33 +8,35 @@ type ItemListProps = {
   view: View;
   loggedInEmail: string | null;
   selectedCategory: string;
-  query: string;
-  minPrice: string;
-  maxPrice: string;
-  sortBy: string;
-  showSold: boolean;
+  query?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  sortBy?: string;
+  showSold?: boolean;
   language: Language;
   onItemClick: (item: Item) => void;
 };
+
+type FilterArgs = Omit<ItemListProps, "language" | "onItemClick">;
 
 export function filterAndSortItems({
   items,
   view,
   loggedInEmail,
   selectedCategory,
-  query,
-  minPrice,
-  maxPrice,
-  sortBy,
-  showSold,
-}: Omit<ItemListProps, "language" | "onItemClick">) {
+  query = "",
+  minPrice = "",
+  maxPrice = "",
+  sortBy = "vip",
+  showSold = true,
+}: FilterArgs) {
   const normalizedQuery = query.trim().toLowerCase();
   const min = minPrice ? Number(minPrice) : null;
   const max = maxPrice ? Number(maxPrice) : null;
 
   return items
     .filter((item) => {
-      if (selectedCategory !== "Р’СЃРёС‡РєРё" && item.category !== selectedCategory) return false;
+      if (selectedCategory !== "Всички" && item.category !== selectedCategory) return false;
       if (!showSold && item.sold) return false;
       if (view === "mine") {
         if (!loggedInEmail) return false;

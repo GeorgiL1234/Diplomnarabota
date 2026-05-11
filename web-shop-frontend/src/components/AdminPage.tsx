@@ -5,10 +5,11 @@ type Props = {
   isAdmin: boolean;
   onDeleteItem: (itemId: number) => void;
   onToggleSold: (item: Item) => void;
-  onViewItem: (item: Item) => void;
+  onViewItem: (item: Item | number) => void;
+  onOpenSellerProfile?: (email?: string | null) => void;
 };
 
-export function AdminPage({ items, isAdmin, onDeleteItem, onToggleSold, onViewItem }: Props) {
+export function AdminPage({ items, isAdmin, onDeleteItem, onToggleSold, onViewItem, onOpenSellerProfile }: Props) {
   if (!isAdmin) {
     return (
       <section className="listings-section">
@@ -32,7 +33,25 @@ export function AdminPage({ items, isAdmin, onDeleteItem, onToggleSold, onViewIt
             <div key={item.id} className="admin-row">
               <div>
                 <strong>{item.title}</strong>
-                <p>{item.ownerEmail || "Без продавач"} · {Number(item.price || 0).toFixed(2)} €</p>
+                <p>
+                  {item.ownerEmail ? (
+                    onOpenSellerProfile ? (
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => onOpenSellerProfile(item.ownerEmail)}
+                      >
+                        {item.ownerEmail}
+                      </button>
+                    ) : (
+                      <span>{item.ownerEmail}</span>
+                    )
+                  ) : (
+                    "Без продавач"
+                  )}
+                  {" · "}
+                  {Number(item.price || 0).toFixed(2)} €
+                </p>
               </div>
               <span className={item.sold ? "sold-pill" : "active-pill"}>{item.sold ? "Продадено" : "Активно"}</span>
               <div className="admin-actions">

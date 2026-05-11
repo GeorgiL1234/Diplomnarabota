@@ -1316,7 +1316,7 @@ function App() {
     setMaxPriceFilter("");
     setSortBy("vip");
     setShowSoldListings(false);
-    setSelectedCategory("Р’СЃРёС‡РєРё");
+    setSelectedCategory("Всички");
   };
 
   const isAdmin = !!loggedInEmail && loggedInEmail.toLowerCase().includes("admin");
@@ -1553,6 +1553,11 @@ function App() {
         language={language}
         items={items}
         selectedCategory={selectedCategory}
+        query={searchQuery}
+        minPrice={minPriceFilter}
+        maxPrice={maxPriceFilter}
+        sortBy={sortBy}
+        showSold={showSoldListings}
         showCreateForm={showCreateForm}
         contactPhonePrefilled={contactPhonePrefilled}
         isCreatingListing={isCreatingListing}
@@ -1567,6 +1572,12 @@ function App() {
         newItemFiles={newItemFiles}
         onToggleCreateForm={() => setShowCreateForm(!showCreateForm)}
         onCategoryChange={setSelectedCategory}
+        onQueryChange={setSearchQuery}
+        onMinPriceChange={setMinPriceFilter}
+        onMaxPriceChange={setMaxPriceFilter}
+        onSortByChange={setSortBy}
+        onShowSoldChange={setShowSoldListings}
+        onClearFilters={clearMarketplaceFilters}
         onItemClick={openItem}
         onTitleChange={setNewItemTitle}
         onDescriptionChange={setNewItemDescription}
@@ -1580,6 +1591,33 @@ function App() {
         onRemoveFile={handleRemoveNewItemFile}
         onCreateSubmit={handleCreateListing}
       />
+
+      {/* ПРОФИЛ НА ПРОДАВАЧ */}
+      {view === "seller" && sellerProfileEmail && (
+        <SellerProfilePage
+          sellerEmail={sellerProfileEmail}
+          items={items}
+          reviews={reviews}
+          language={language}
+          onBack={() => {
+            setSellerProfileEmail("");
+            setView("all");
+          }}
+          onItemClick={openItem}
+        />
+      )}
+
+      {/* АДМИН ПАНЕЛ */}
+      {view === "admin" && (
+        <AdminPage
+          items={items}
+          isAdmin={isAdmin}
+          onDeleteItem={deleteItemAsAdmin}
+          onToggleSold={toggleSoldStatus}
+          onViewItem={openItem}
+          onOpenSellerProfile={openSellerProfile}
+        />
+      )}
 
       <GuestWelcomeFallback
         language={language}
