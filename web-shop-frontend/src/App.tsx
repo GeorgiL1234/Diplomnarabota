@@ -22,9 +22,18 @@ import { VipListingsPage } from "./components/VipListingsPage";
 import { VipPaymentForm } from "./components/VipPaymentForm";
 import { LandingPage } from "./components/LandingPage";
 import { useWebSocketMessages } from "./useWebSocketMessages";
+import { SellerProfilePage } from "./components/SellerProfilePage";
+import { AdminPage } from "./components/AdminPage";
 
 function App() {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [minPriceFilter, setMinPriceFilter] = useState("");
+  const [maxPriceFilter, setMaxPriceFilter] = useState("");
+  const [sortBy, setSortBy] = useState("vip");
+  const [showSoldListings, setShowSoldListings] = useState(false);
+  const [sellerProfileEmail, setSellerProfileEmail] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
   const [selectedCategory, setSelectedCategory] = useState<string>("Всички");
 
   // create listing form
@@ -95,6 +104,9 @@ function App() {
   useEffect(() => {
     localStorage.setItem("language", language);
   }, [language]);
+  useEffect(() => {
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
   const t = translations[language] || translations["bg"];
 
   const [error, setError] = useState<string | null>(null);
@@ -1298,8 +1310,63 @@ function App() {
     console.log('App render:', { view, loggedInEmail, itemsCount: items.length });
   }, [view, loggedInEmail, items.length]);
 
+  const clearMarketplaceFilters = () => {
+    setSearchQuery("");
+    setMinPriceFilter("");
+    setMaxPriceFilter("");
+    setSortBy("vip");
+    setShowSoldListings(false);
+    setSelectedCategory("Р’СЃРёС‡РєРё");
+  };
+
+  const isAdmin = !!loggedInEmail && loggedInEmail.toLowerCase().includes("admin");
+  const notificationCount = loggedInEmail
+    ? receivedMessages.filter((msg) => !msg.response).length + sellerOrders.filter((order) => order.status === "PENDING").length
+    : 0;
+
+  const openSellerProfile = (email?: string | null) => {
+    if (!email) return;
+    setSellerProfileEmail(email);
+    setSelectedItem(null);
+    setView("seller");
+  };
+
+  const deleteItemAsAdmin = async (itemId: number) => {
+    if (!isAdmin) return;
+    if (!window.confirm("Да изтрия ли тази обява?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/items/${itemId}`, {
+        method: "DELETE",
+        headers: withAuth(),
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setItems((prev) => prev.filter((item) => item.id !== itemId));
+      setMessage("Обявата е изтрита.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const toggleSoldStatus = async (item: Item) => {
+    const nextSold = !item.sold;
+    try {
+      const res = await fetch(`${API_BASE}/items/${item.id}/sold`, {
+        method: "PATCH",
+        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
+        body: JSON.stringify({ sold: nextSold }),
+      });
+      if (!res.ok) throw new Error("Status update failed");
+      const updated = await res.json();
+      setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, sold: updated.sold } : it)));
+      setSelectedItem((prev) => (prev?.id === item.id ? { ...prev, sold: updated.sold } : prev));
+      setMessage(nextSold ? "Обявата е маркирана като продадена." : "Обявата е активирана.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${isDarkMode ? "theme-dark" : ""}`}>
       <Header
         language={language}
         setLanguage={setLanguage}
@@ -1309,6 +1376,10 @@ function App() {
         setSelectedItem={setSelectedItem}
         setReviews={setReviews}
         handleLogout={handleLogout}
+        isDarkMode={isDarkMode}
+        onToggleTheme={() => setIsDarkMode((prev) => !prev)}
+        notificationCount={notificationCount}
+        isAdmin={isAdmin}
       />
 
       {/* НАЧАЛНА СТРАНИЦА */}

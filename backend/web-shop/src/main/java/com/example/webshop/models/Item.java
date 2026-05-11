@@ -44,6 +44,9 @@ public class Item {
     @Column(nullable = false)
     private Boolean isVip = false;
 
+    @Column(nullable = false)
+    private Boolean sold = false;
+
     // Начин на плащане - карта или кеш
     @Column(nullable = true)
     private String paymentMethod;
@@ -136,6 +139,15 @@ public class Item {
 
     public void setIsVip(Boolean isVip) {
         this.isVip = isVip != null ? isVip : false;
+    }
+
+    @JsonView(JsonViews.WithImage.class)
+    public Boolean getSold() {
+        return sold != null ? sold : false;
+    }
+
+    public void setSold(Boolean sold) {
+        this.sold = sold != null ? sold : false;
     }
 
     @JsonView(JsonViews.WithImage.class)

@@ -3,7 +3,8 @@ import { translations, getCategoryLabel, type Language } from "../translations";
 import type { Item, View } from "../types";
 import { CATEGORIES } from "../types";
 import { CreateListingForm } from "./CreateListingForm";
-import { ItemList } from "./ItemList";
+import { filterAndSortItems, ItemList } from "./ItemList";
+import { MarketplaceFilters } from "./MarketplaceFilters";
 
 type Props = {
   view: View;
@@ -11,6 +12,11 @@ type Props = {
   language: Language;
   items: Item[];
   selectedCategory: string;
+  query: string;
+  minPrice: string;
+  maxPrice: string;
+  sortBy: string;
+  showSold: boolean;
   showCreateForm: boolean;
   contactPhonePrefilled: boolean;
   isCreatingListing: boolean;
@@ -25,6 +31,12 @@ type Props = {
   newItemFiles: File[];
   onToggleCreateForm: () => void;
   onCategoryChange: (c: string) => void;
+  onQueryChange: (v: string) => void;
+  onMinPriceChange: (v: string) => void;
+  onMaxPriceChange: (v: string) => void;
+  onSortByChange: (v: string) => void;
+  onShowSoldChange: (v: boolean) => void;
+  onClearFilters: () => void;
   onItemClick: (item: Item | number) => void;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
@@ -45,6 +57,11 @@ export function ListingsSection({
   language,
   items,
   selectedCategory,
+  query,
+  minPrice,
+  maxPrice,
+  sortBy,
+  showSold,
   showCreateForm,
   contactPhonePrefilled,
   isCreatingListing,
@@ -59,6 +76,12 @@ export function ListingsSection({
   newItemFiles,
   onToggleCreateForm,
   onCategoryChange,
+  onQueryChange,
+  onMinPriceChange,
+  onMaxPriceChange,
+  onSortByChange,
+  onShowSoldChange,
+  onClearFilters,
   onItemClick,
   onTitleChange,
   onDescriptionChange,
@@ -73,6 +96,17 @@ export function ListingsSection({
   onCreateSubmit,
 }: Props) {
   const t = translations[language] || translations["bg"];
+  const resultCount = filterAndSortItems({
+    items,
+    view,
+    loggedInEmail,
+    selectedCategory,
+    query,
+    minPrice,
+    maxPrice,
+    sortBy,
+    showSold,
+  }).length;
 
   if (!(view === "all" || (view === "mine" && loggedInEmail))) return null;
 
@@ -117,23 +151,39 @@ export function ListingsSection({
         />
 
         {!showCreateForm && (
-          <div className="category-filter">
-            <label htmlFor="main-category-filter">
-              <strong>{t.category}</strong>
-              <select
-                id="main-category-filter"
-                name="category"
-                value={selectedCategory}
-                onChange={(e) => onCategoryChange(e.target.value)}
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {getCategoryLabel(cat, t)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <>
+            <div className="category-filter">
+              <label htmlFor="main-category-filter">
+                <strong>{t.category}</strong>
+                <select
+                  id="main-category-filter"
+                  name="category"
+                  value={selectedCategory}
+                  onChange={(e) => onCategoryChange(e.target.value)}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {getCategoryLabel(cat, t)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <MarketplaceFilters
+              query={query}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              sortBy={sortBy}
+              showSold={showSold}
+              resultCount={resultCount}
+              onQueryChange={onQueryChange}
+              onMinPriceChange={onMinPriceChange}
+              onMaxPriceChange={onMaxPriceChange}
+              onSortByChange={onSortByChange}
+              onShowSoldChange={onShowSoldChange}
+              onClear={onClearFilters}
+            />
+          </>
         )}
 
         {view === "mine" && !loggedInEmail && <p className="info-text">{t.loginToSeeListings}</p>}
@@ -143,6 +193,11 @@ export function ListingsSection({
           view={view}
           loggedInEmail={loggedInEmail}
           selectedCategory={selectedCategory}
+          query={query}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          sortBy={sortBy}
+          showSold={showSold}
           language={language}
           onItemClick={onItemClick}
         />

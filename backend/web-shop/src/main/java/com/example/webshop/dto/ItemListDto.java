@@ -16,6 +16,7 @@ public class ItemListDto {
     private String contactEmail;
     private String contactPhone;
     private Boolean isVip;
+    private Boolean sold;
     private String paymentMethod;
 
     public ItemListDto() {}
@@ -31,6 +32,7 @@ public class ItemListDto {
         dto.setContactEmail(item.getContactEmail());
         dto.setContactPhone(item.getContactPhone());
         dto.setIsVip(item.getIsVip());
+        dto.setSold(item.getSold());
         dto.setPaymentMethod(item.getPaymentMethod());
         return dto;
     }
@@ -53,6 +55,8 @@ public class ItemListDto {
     public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
     public Boolean getIsVip() { return isVip; }
     public void setIsVip(Boolean isVip) { this.isVip = isVip; }
+    public Boolean getSold() { return sold; }
+    public void setSold(Boolean sold) { this.sold = sold; }
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

@@ -76,8 +76,16 @@ public class ItemService {
         }
         item.setContactEmail(contactMail.isEmpty() ? null : contactMail);
         item.setContactPhone(updatedItem.getContactPhone());
+        item.setSold(updatedItem.getSold());
         // ownerEmail не го сменяме при update (за да не "крадат" обяви)
 
+        return itemRepository.save(item);
+    }
+
+    @Transactional
+    public Item updateSold(Long id, Boolean sold) {
+        Item item = getById(id);
+        item.setSold(sold);
         return itemRepository.save(item);
     }
 

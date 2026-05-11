@@ -8,27 +8,65 @@ type ItemListProps = {
   view: View;
   loggedInEmail: string | null;
   selectedCategory: string;
+  query: string;
+  minPrice: string;
+  maxPrice: string;
+  sortBy: string;
+  showSold: boolean;
   language: Language;
   onItemClick: (item: Item) => void;
 };
 
-export function ItemList({ items, view, loggedInEmail, selectedCategory, language, onItemClick }: ItemListProps) {
-  const filteredItems = items.filter((it) => {
-    // филтър по категория
-    if (selectedCategory !== "Всички") {
-      if (!it.category || it.category !== selectedCategory) return false;
-    }
-    // филтър по "моите обяви" – сравнение с trim и case-insensitive
-    if (view === "mine") {
-      if (!loggedInEmail) return false;
-      const a = (it.ownerEmail ?? "").trim().toLowerCase();
-      const b = (loggedInEmail ?? "").trim().toLowerCase();
-      return a.length > 0 && a === b;
-    }
-    return true;
-  });
+export function filterAndSortItems({
+  items,
+  view,
+  loggedInEmail,
+  selectedCategory,
+  query,
+  minPrice,
+  maxPrice,
+  sortBy,
+  showSold,
+}: Omit<ItemListProps, "language" | "onItemClick">) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const min = minPrice ? Number(minPrice) : null;
+  const max = maxPrice ? Number(maxPrice) : null;
 
+  return items
+    .filter((item) => {
+      if (selectedCategory !== "Р’СЃРёС‡РєРё" && item.category !== selectedCategory) return false;
+      if (!showSold && item.sold) return false;
+      if (view === "mine") {
+        if (!loggedInEmail) return false;
+        if ((item.ownerEmail || "").trim().toLowerCase() !== loggedInEmail.trim().toLowerCase()) return false;
+      }
+      if (normalizedQuery) {
+        const haystack = `${item.title || ""} ${item.description || ""} ${item.ownerEmail || ""} ${item.category || ""}`.toLowerCase();
+        if (!haystack.includes(normalizedQuery)) return false;
+      }
+      const price = Number(item.price || 0);
+      if (min != null && !Number.isNaN(min) && price < min) return false;
+      if (max != null && !Number.isNaN(max) && price > max) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "priceAsc") return Number(a.price || 0) - Number(b.price || 0);
+      if (sortBy === "priceDesc") return Number(b.price || 0) - Number(a.price || 0);
+      if (sortBy === "title") return (a.title || "").localeCompare(b.title || "");
+      if (sortBy === "newest") return Number(b.id || 0) - Number(a.id || 0);
+      const aVip = a.isVip === true;
+      const bVip = b.isVip === true;
+      if (aVip && !bVip) return -1;
+      if (!aVip && bVip) return 1;
+      return Number(b.id || 0) - Number(a.id || 0);
+    });
+}
+
+export function ItemList(props: ItemListProps) {
+  const { language, onItemClick } = props;
+  const filteredItems = filterAndSortItems(props);
   const t = translations[language];
+
   if (filteredItems.length === 0) {
     return (
       <div className="empty-state">
@@ -40,8 +78,8 @@ export function ItemList({ items, view, loggedInEmail, selectedCategory, languag
 
   return (
     <div className="items-grid">
-      {filteredItems.map((it) => (
-        <ItemCard key={it.id} item={it} language={language} onClick={() => onItemClick(it)} />
+      {filteredItems.map((item) => (
+        <ItemCard key={item.id} item={item} language={language} onClick={() => onItemClick(item)} />
       ))}
     </div>
   );

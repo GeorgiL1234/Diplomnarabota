@@ -202,6 +202,12 @@ public class ItemController {
         return itemService.update(id, item);
     }
 
+    @PatchMapping("/{id:[0-9]+}/sold")
+    public Item updateSold(@PathVariable Long id, @RequestBody java.util.Map<String, Boolean> body) {
+        Boolean sold = body != null ? body.get("sold") : Boolean.FALSE;
+        return itemService.updateSold(id, sold);
+    }
+
     @DeleteMapping("/{id:[0-9]+}")
     public void delete(@PathVariable Long id) {
         itemService.delete(id);

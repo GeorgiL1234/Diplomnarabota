@@ -12,6 +12,10 @@ type HeaderProps = {
   setSelectedItem: (item: any) => void;
   setReviews: (reviews: any[]) => void;
   handleLogout: () => void;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
+  notificationCount: number;
+  isAdmin: boolean;
 };
 
 export function Header({
@@ -23,6 +27,10 @@ export function Header({
   setSelectedItem,
   setReviews,
   handleLogout,
+  isDarkMode,
+  onToggleTheme,
+  notificationCount,
+  isAdmin,
 }: HeaderProps) {
   const t = translations[language];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -125,7 +133,7 @@ export function Header({
                 <div className="dropdown-container" ref={menuRef}>
                   <button
                     type="button"
-                    className={`nav-btn dropdown-toggle ${["messages", "orders", "vip"].includes(view) ? "active" : ""}`}
+                    className={`nav-btn dropdown-toggle ${["messages", "orders", "vip", "admin"].includes(view) ? "active" : ""}`}
                     onClick={() => {
                       setIsMenuOpen((prev) => !prev);
                       setIsUserMenuOpen(false);
@@ -144,6 +152,7 @@ export function Header({
                       >
                         <span className="nav-icon">💬</span>
                         {t.navMessages}
+                        {notificationCount > 0 && <span className="notification-badge">{notificationCount}</span>}
                       </button>
                       <button
                         type="button"
@@ -161,6 +170,16 @@ export function Header({
                         <span className="nav-icon">👑</span>
                         {t.vipListingsTitle}
                       </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className={`dropdown-item ${view === "admin" ? "active" : ""}`}
+                          onClick={() => handleViewChange("admin")}
+                        >
+                          <span className="nav-icon">🛡️</span>
+                          Админ
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -223,6 +242,9 @@ export function Header({
               <option value="en">🇬🇧 EN</option>
               <option value="ru">🇷🇺 RU</option>
             </select>
+            <button type="button" className="nav-btn theme-toggle" onClick={onToggleTheme}>
+              {isDarkMode ? "☀️" : "🌙"}
+            </button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -292,6 +314,7 @@ export function Header({
                 >
                   <span className="nav-icon">💬</span>
                   {t.navMessages}
+                  {notificationCount > 0 && <span className="notification-badge">{notificationCount}</span>}
                 </button>
                 <button
                   type="button"
@@ -309,6 +332,16 @@ export function Header({
                   <span className="nav-icon">👑</span>
                   {t.vipListingsTitle}
                 </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className={`nav-btn mobile-nav-btn ${view === "admin" ? "active" : ""}`}
+                    onClick={() => handleViewChange("admin")}
+                  >
+                    <span className="nav-icon">🛡️</span>
+                    Админ
+                  </button>
+                )}
                 <button
                   type="button"
                   className="nav-btn mobile-nav-btn logout-btn"
@@ -336,6 +369,9 @@ export function Header({
                 <option value="ru">🇷🇺 RU</option>
               </select>
             </div>
+            <button type="button" className="nav-btn mobile-nav-btn theme-toggle" onClick={onToggleTheme}>
+              {isDarkMode ? "Светла тема" : "Тъмна тема"}
+            </button>
             {!loggedInEmail && (
               <button
                 type="button"
