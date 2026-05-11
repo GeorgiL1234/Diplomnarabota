@@ -157,12 +157,17 @@ export function useShopAuth({
       const responseText = await res.text();
       const responseJson = parseJsonSafely(responseText);
       if (!res.ok || res.status !== 200) {
+        // Backend ErrorResponse: { error: "Conflict", message: "Email already in use!", ... }
+        // Полето `message` е смисленото описание; `error` е само HTTP reason phrase.
         const msgFromJson =
-          typeof responseJson?.error === "string"
-            ? responseJson.error
-            : typeof responseJson?.message === "string"
-              ? responseJson.message
+          typeof responseJson?.message === "string"
+            ? responseJson.message
+            : typeof responseJson?.error === "string"
+              ? responseJson.error
               : null;
+        if (res.status === 409) {
+          throw new Error(msgFromJson || "Email already in use");
+        }
         throw new Error(msgFromJson || responseText || t.errorRegistration);
       }
       const authData = responseJson as { accessToken?: string; email?: string } | null;
@@ -249,12 +254,15 @@ export function useShopAuth({
       });
       const responseText = await res.text();
       if (!res.ok || res.status !== 200) {
-        try {
-          const errorJson = JSON.parse(responseText);
-          throw new Error(errorJson.error || errorJson.message || t.errorLogin);
-        } catch {
-          throw new Error(responseText || t.errorLogin);
-        }
+        const errorJson = parseJsonSafely(responseText);
+        // Полето `message` е смисленото описание; `error` е само HTTP reason phrase.
+        const msgFromJson =
+          typeof errorJson?.message === "string"
+            ? errorJson.message
+            : typeof errorJson?.error === "string"
+              ? errorJson.error
+              : null;
+        throw new Error(msgFromJson || responseText || t.errorLogin);
       }
       let loginData: { accessToken?: string; email?: string };
       try {
@@ -294,6 +302,14 @@ export function useShopAuth({
             : language === "en"
               ? "Cannot connect to server. Please check your internet connection and try again."
               : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова."
+        );
+      } else if (er.message?.includes("Invalid email or password")) {
+        setError(
+          language === "bg"
+            ? "Грешен email или парола."
+            : language === "en"
+              ? "Invalid email or password."
+              : "Неверный email или пароль."
         );
       } else {
         setError(er.message || String(err) || t.errorLogin);
