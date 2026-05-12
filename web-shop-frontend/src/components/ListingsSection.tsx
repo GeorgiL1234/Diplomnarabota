@@ -108,13 +108,18 @@ export function ListingsSection({
     showSold,
   }).length;
 
+  const subtitle = view === "mine" ? t.myListingsSubtitle : t.allListingsSubtitle;
+
   if (!(view === "all" || (view === "mine" && loggedInEmail))) return null;
 
   return (
     <section className="listings-section">
       <div className="listings-main">
-        <div className="listings-header">
-          <h2>{view === "all" ? t.allListings : t.myListings}</h2>
+        <div className={`listings-header ${view === "mine" ? "mine" : "all"}`}>
+          <div>
+            <h2>{view === "all" ? t.allListings : t.myListings}</h2>
+            <p className="listings-subtitle">{subtitle}</p>
+          </div>
           {view === "mine" && loggedInEmail && (
             <button className="btn-primary" onClick={onToggleCreateForm}>
               {showCreateForm ? t.cancel : t.createListing}

@@ -20,7 +20,7 @@ export function useLoadItems(
 
     tryFetch(`${listUrl}?t=${Date.now()}`)
       .catch((err) => {
-        if (!useFull && (err?.status === 400 || err?.status === 404)) {
+        if (!useFull) {
           return tryFetch(`${API_BASE}/items`);
         }
         throw new Error("HTTP " + (err?.status || "?"));
@@ -43,7 +43,13 @@ export function useLoadItems(
           return prev;
         });
       })
-      .catch((err) => setError(err?.message || String(err)));
+      .catch((err) => {
+        const message = err?.message || String(err);
+        const friendlyMessage = typeof message === "string" && message.startsWith("HTTP")
+          ? "Неуспешно зареждане на обявите. Опитайте отново по-късно."
+          : message;
+        setError(friendlyMessage);
+      });
   }, [setSelectedItem, setError]);
 
   return { items, setItems, loadItems };

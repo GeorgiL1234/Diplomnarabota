@@ -65,14 +65,15 @@ export function filterAndSortItems({
 }
 
 export function ItemList(props: ItemListProps) {
-  const { language, onItemClick } = props;
+  const { view, language, onItemClick } = props;
   const filteredItems = filterAndSortItems(props);
   const t = translations[language];
 
   if (filteredItems.length === 0) {
+    const icon = view === "mine" ? "📦" : "🔎";
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">📭</div>
+        <div className="empty-state-icon">{icon}</div>
         <p className="info-text">{t.noListings}</p>
       </div>
     );

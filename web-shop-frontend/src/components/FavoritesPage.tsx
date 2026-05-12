@@ -23,7 +23,10 @@ export function FavoritesPage({
       <div className="listings-main">
         <h2>{t.favoritesTitle}</h2>
         {favorites.length === 0 ? (
-          <p className="info-text">{t.noFavorites}</p>
+          <div className="empty-state">
+            <div className="empty-state-icon">💛</div>
+            <p className="info-text">{t.noFavorites}</p>
+          </div>
         ) : (
           <ul className="items-list">
             {favorites.map((fav) => {

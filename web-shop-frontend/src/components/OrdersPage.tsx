@@ -34,7 +34,10 @@ export function OrdersPage({
         <div className="orders-page-section">
           <h3>{t.myOrders}</h3>
           {myOrders.length === 0 ? (
-            <p className="info-text">{t.noOrders}</p>
+            <div className="empty-state">
+              <div className="empty-state-icon">📭</div>
+              <p className="info-text">{t.noOrders}</p>
+            </div>
           ) : (
             <ul className="orders-list">
               {myOrders.map((order) => (
@@ -82,7 +85,10 @@ export function OrdersPage({
         <div className="orders-page-section">
           <h3>{t.sellerOrders}</h3>
           {sellerOrders.length === 0 ? (
-            <p className="info-text">{t.noSellerOrders}</p>
+            <div className="empty-state">
+              <div className="empty-state-icon">📭</div>
+              <p className="info-text">{t.noSellerOrders}</p>
+            </div>
           ) : (
             <ul className="orders-list">
               {sellerOrders.map((order) => (

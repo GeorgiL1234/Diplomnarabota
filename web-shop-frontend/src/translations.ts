@@ -54,7 +54,9 @@ export const translations = {
     
     // Listings
     allListings: "Всички обяви",
+    allListingsSubtitle: "Разгледайте всички активни и VIP обяви.",
     myListings: "Моите обяви",
+    myListingsSubtitle: "Управлявайте своите обяви и добавете нови лесно.",
     createListing: "+ Създай обява",
     cancel: "Откажи",
     createNewListing: "Създай нова обява",
@@ -248,7 +250,9 @@ export const translations = {
     
     // Listings
     allListings: "All Listings",
+    allListingsSubtitle: "Browse all active and VIP listings.",
     myListings: "My Listings",
+    myListingsSubtitle: "Manage your listings and add new ones easily.",
     createListing: "+ Create Listing",
     cancel: "Cancel",
     createNewListing: "Create New Listing",
@@ -442,7 +446,9 @@ export const translations = {
     
     // Listings
     allListings: "Все объявления",
+    allListingsSubtitle: "Просматривайте все активные и VIP объявления.",
     myListings: "Мои объявления",
+    myListingsSubtitle: "Управляйте своими объявлениями и добавляйте новые легко.",
     createListing: "+ Создать объявление",
     cancel: "Отмена",
     createNewListing: "Создать новое объявление",

@@ -108,7 +108,7 @@ export function Header({
               <>
                 <button
                   type="button"
-                  className={`nav-btn ${view === "all" ? "active" : ""}`}
+                  className={`nav-btn ${view === "all" ? "active active-all" : ""}`}
                   onClick={() => handleViewChange("all")}
                 >
                   <span className="nav-icon">📋</span>
@@ -116,7 +116,7 @@ export function Header({
                 </button>
                 <button
                   type="button"
-                  className={`nav-btn ${view === "mine" ? "active" : ""}`}
+                  className={`nav-btn ${view === "mine" ? "active active-mine" : ""}`}
                   onClick={() => handleViewChange("mine")}
                 >
                   <span className="nav-icon">📦</span>
