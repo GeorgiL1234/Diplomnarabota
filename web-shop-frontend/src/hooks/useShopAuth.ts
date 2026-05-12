@@ -39,7 +39,16 @@ export function useShopAuth({
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(() => localStorage.getItem("loggedInEmail"));
+  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(() => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const email = localStorage.getItem("loggedInEmail");
+    if (!token || !email) {
+      localStorage.removeItem("loggedInEmail");
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      return null;
+    }
+    return email;
+  });
 
   const updateLoggedInEmail = useCallback((email: string | null) => {
     if (email) {

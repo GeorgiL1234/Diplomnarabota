@@ -4,7 +4,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import "./App.css";
 import { translations, type Language } from "./translations";
 import type { Item, Favorite, Review, Message, ItemOrder, View } from "./types";
-import { API_BASE, withAuth } from "./config";
+import { API_BASE, AUTH_TOKEN_KEY, withAuth } from "./config";
 import { compressImage } from "./utils/compressImage";
 import { useLoadItems } from "./hooks/useLoadItems";
 import { useShopAuth } from "./hooks/useShopAuth";
@@ -76,10 +76,11 @@ function App() {
   const [isSendingQuestion, setIsSendingQuestion] = useState(false);
 
   // view / навигация
-  // Проверяваме дали има запазен email в localStorage при зареждане
+  // Проверяваме дали има валиден auth token и запазен email в localStorage при зареждане
   const [view, setView] = useState<View>(() => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const savedEmail = localStorage.getItem("loggedInEmail");
-    return savedEmail ? "all" : "home";
+    return token && savedEmail ? "all" : "home";
   });
   
   const [contactPhonePrefilled, setContactPhonePrefilled] = useState(false);
