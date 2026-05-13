@@ -25,6 +25,7 @@ type ItemDetailProps = {
   onAddToFavorites: (itemId: number) => void;
   onRemoveFromFavorites: (itemId: number) => void;
   onActivateVip: (itemId: number) => void;
+  onToggleSold: (item: Item) => void;
   onToggleOrderForm: () => void;
   onPaymentMethodChange: (method: string) => void;
   onDeliveryMethodChange: (method: string) => void;
@@ -61,6 +62,7 @@ export function ItemDetail({
   onAddToFavorites,
   onRemoveFromFavorites,
   onActivateVip,
+  onToggleSold,
   onToggleOrderForm,
   onPaymentMethodChange,
   onDeliveryMethodChange,
@@ -177,14 +179,25 @@ export function ItemDetail({
               </div>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
             <h2 style={{ margin: 0 }}>{item.title || ""}</h2>
             {item.isVip && (
               <div className="vip-badge" style={{ fontSize: "14px", padding: "4px 12px" }}>
-                ВИП
+                {t.vipBadge}
+              </div>
+            )}
+            {item.sold && (
+              <div className="sold-badge sold-badge-inline">
+                {t.soldBadge}
               </div>
             )}
           </div>
+          {item.sold && (
+            <div className="sold-banner" role="status" aria-live="polite">
+              <span className="sold-banner-icon">✓</span>
+              <span className="sold-banner-text">{t.soldBanner}</span>
+            </div>
+          )}
           {item.category && <span className="item-category-badge">{item.category}</span>}
           <p className="item-detail-description">{item.description || ""}</p>
           <p className="item-detail-price">
@@ -211,17 +224,25 @@ export function ItemDetail({
             </div>
           )}
 
-          {/* Бутон за активиране на VIP */}
-          {item.ownerEmail && item.ownerEmail === loggedInEmail && !item.isVip && (
-            <div style={{ marginBottom: "16px" }}>
-              <button className="btn-primary" onClick={() => onActivateVip(item.id)}>
-                {t.activateVip} (2 {t.currency})
+          {/* Действия за собственика на обявата (VIP + sold toggle) */}
+          {item.ownerEmail && item.ownerEmail === loggedInEmail && (
+            <div className="owner-actions" style={{ marginBottom: "16px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {!item.isVip && !item.sold && (
+                <button className="btn-primary" onClick={() => onActivateVip(item.id)}>
+                  {t.activateVip} (2 {t.currency})
+                </button>
+              )}
+              <button
+                className={item.sold ? "btn-secondary" : "btn-primary"}
+                onClick={() => onToggleSold(item)}
+              >
+                {item.sold ? t.markAsActive : t.markAsSold}
               </button>
             </div>
           )}
 
-          {/* Бутон за поръчка */}
-          {item.ownerEmail && item.ownerEmail !== loggedInEmail && (
+          {/* Бутон за поръчка – само ако не е продадено */}
+          {item.ownerEmail && item.ownerEmail !== loggedInEmail && !item.sold && (
             <div className="order-section">
               <button className="btn-primary btn-order" onClick={onToggleOrderForm}>
                 {showOrderForm ? t.cancelOrder : t.orderButton}
@@ -229,8 +250,8 @@ export function ItemDetail({
             </div>
           )}
 
-          {/* Форма за поръчка */}
-          {showOrderForm && item.ownerEmail && item.ownerEmail !== loggedInEmail && (
+          {/* Форма за поръчка – само ако не е продадено */}
+          {showOrderForm && item.ownerEmail && item.ownerEmail !== loggedInEmail && !item.sold && (
             <form onSubmit={onCreateOrder} className="order-form">
               <h3>{t.orderTitle}</h3>
               

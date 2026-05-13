@@ -902,6 +902,98 @@ button {
   letter-spacing: 0.04em;
 }
 
+/* "Продадено" badge върху картичката на обявата (горе вдясно). */
+.sold-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  border: 1px solid #b91c1c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 10px 20px rgba(185, 28, 28, 0.28);
+}
+
+/* Същият badge но inline (в детайла, до заглавието) – без abs. позициониране. */
+.sold-badge.sold-badge-inline {
+  position: static;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+/* "Продадено" затъмнен overlay над снимката на картичката. */
+.item-card:has(.sold-badge) .item-image-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  pointer-events: none;
+}
+
+/* Голям banner с info, че обявата е продадена – върху детайла. */
+.sold-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #fef2f2, #fee2e2);
+  border: 1px solid #fca5a5;
+  border-left: 5px solid #dc2626;
+  border-radius: var(--radius);
+  color: #7f1d1d;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 8px 22px rgba(220, 38, 38, 0.1);
+}
+
+.sold-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+/* Статус "хапчета" в админ панела. */
+.sold-pill,
+.active-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sold-pill {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+.active-pill {
+  color: #14532d;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
 .detail-view-container {
   max-width: 1100px;
   margin: 0 auto;

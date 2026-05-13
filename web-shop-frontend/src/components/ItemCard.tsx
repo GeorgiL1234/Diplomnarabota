@@ -62,7 +62,7 @@ export function ItemCard({ item, language, onClick }: ItemCardProps) {
   return (
     <div className="item-card" onClick={onClick}>
       {item.isVip && <div className="vip-badge">{t.vipBadge}</div>}
-      {item.sold && <div className="sold-badge">Продадено</div>}
+      {item.sold && <div className="sold-badge">{t.soldBadge}</div>}
       <div className="item-image-wrapper">
         <img
           src={imageUrl}

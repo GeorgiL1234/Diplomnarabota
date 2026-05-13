@@ -1316,6 +1316,10 @@ function App() {
   };
 
   const toggleSoldStatus = async (item: Item) => {
+    if (!loggedInEmail) {
+      setError(t.errorMustLogin);
+      return;
+    }
     const nextSold = !item.sold;
     try {
       const res = await fetch(`${API_BASE}/items/${item.id}/sold`, {
@@ -1323,13 +1327,17 @@ function App() {
         headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
         body: JSON.stringify({ sold: nextSold }),
       });
-      if (!res.ok) throw new Error("Status update failed");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || t.errorMarkSold);
+      }
       const updated = await res.json();
       setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, sold: updated.sold } : it)));
       setSelectedItem((prev) => (prev?.id === item.id ? { ...prev, sold: updated.sold } : prev));
-      setMessage(nextSold ? "Обявата е маркирана като продадена." : "Обявата е активирана.");
+      setError(null);
+      setMessage(nextSold ? t.successMarkedSold : t.successMarkedActive);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(err instanceof Error ? err.message : t.errorMarkSold);
     }
   };
 
@@ -1426,6 +1434,7 @@ function App() {
           onAddToFavorites={addToFavorites}
           onRemoveFromFavorites={removeFromFavorites}
           onActivateVip={activateVip}
+          onToggleSold={toggleSoldStatus}
           onToggleOrderForm={() => setShowOrderForm(!showOrderForm)}
           onPaymentMethodChange={setPaymentMethod}
           onDeliveryMethodChange={setDeliveryMethod}
