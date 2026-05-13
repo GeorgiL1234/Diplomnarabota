@@ -46,7 +46,13 @@ public class SchemaMigrator implements ApplicationRunner {
                 "ALTER TABLE item ADD COLUMN IF NOT EXISTS payment_method VARCHAR(255)",
                 // Backfill any rows that pre-existed before we added these columns
                 "UPDATE item SET sold = FALSE WHERE sold IS NULL",
-                "UPDATE item SET is_vip = FALSE WHERE is_vip IS NULL"
+                "UPDATE item SET is_vip = FALSE WHERE is_vip IS NULL",
+                // Render free tier has no persistent disk, so any `fs:<filename>`
+                // tokens left over from the old filesystem-based upload flow now
+                // point to deleted files. Wipe them so the UI shows the
+                // placeholder rather than a broken image. New uploads are
+                // stored as `data:image/...;base64,...` and survive restarts.
+                "UPDATE item SET image_url = NULL WHERE image_url LIKE 'fs:%'"
         );
 
         for (String sql : statements) {

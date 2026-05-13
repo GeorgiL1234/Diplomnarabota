@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.UUID;
+import java.util.Base64;
 import java.util.regex.Pattern;
 
 @RestController
@@ -95,33 +95,20 @@ public class FileUploadController {
                         .body("{\"error\":\"File must be an image\",\"status\":\"error\"}");
             }
 
-            String ext = extensionForImage(contentType, file.getOriginalFilename());
-            String filename = itemId + "_" + UUID.randomUUID() + ext;
-            Path root = UploadStorage.getUploadRoot();
-            Path dest = root.resolve(filename).normalize();
-            if (!dest.startsWith(root)) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("{\"error\":\"Invalid storage path\",\"status\":\"error\"}");
-            }
+            // Render free tier has no persistent disk – store images as base64
+            // inside the existing TEXT `image_url` column so they survive restarts.
+            // Frontend already compresses uploads to ~300KB, so a 5-image listing
+            // stays well below the row size limit.
+            String normalizedContentType = normalizeImageMime(contentType);
+            String base64 = Base64.getEncoder().encodeToString(bytes);
+            String token = "data:" + normalizedContentType + ";base64," + base64;
 
-            try {
-                Files.write(dest, bytes);
-            } catch (IOException e) {
-                try {
-                    Files.deleteIfExists(dest);
-                } catch (IOException ignored) {
-                }
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("{\"error\":\"Failed to save file: " + escapeJson(e.getMessage()) + "\",\"status\":\"error\"}");
-            }
-
-            String token = UploadStorage.FS_PREFIX + filename;
             String newImageUrl;
             if (append && item.getImageUrl() != null && !item.getImageUrl().trim().isEmpty()) {
                 newImageUrl = item.getImageUrl().trim() + UploadStorage.IMAGE_PART_DELIMITER + token;
             } else {
+                // Replacing the previous picture(s) – clean up any legacy fs:
+                // tokens that may still be lingering on disk from older deploys.
                 if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
                     for (String part : item.getImageUrl().split(Pattern.quote(UploadStorage.IMAGE_PART_DELIMITER))) {
                         String p = part.trim();
@@ -141,21 +128,12 @@ public class FileUploadController {
                     .body("{\"status\":\"success\",\"message\":\"Image uploaded successfully\",\"imageAvailable\":true,\"itemId\":" + itemId + "}");
     }
 
-    private static String extensionForImage(String contentType, String originalFilename) {
-        if (contentType != null) {
-            if (contentType.contains("png")) return ".png";
-            if (contentType.contains("gif")) return ".gif";
-            if (contentType.contains("webp")) return ".webp";
-            if (contentType.contains("jpeg") || contentType.contains("jpg")) return ".jpg";
-        }
-        if (originalFilename != null) {
-            String lower = originalFilename.toLowerCase();
-            if (lower.endsWith(".png")) return ".png";
-            if (lower.endsWith(".gif")) return ".gif";
-            if (lower.endsWith(".webp")) return ".webp";
-            if (lower.endsWith(".jpeg") || lower.endsWith(".jpg")) return ".jpg";
-        }
-        return ".jpg";
+    private static String normalizeImageMime(String contentType) {
+        String ct = contentType.toLowerCase();
+        if (ct.contains("png")) return "image/png";
+        if (ct.contains("gif")) return "image/gif";
+        if (ct.contains("webp")) return "image/webp";
+        return "image/jpeg";
     }
 
     private static String escapeJson(String s) {
