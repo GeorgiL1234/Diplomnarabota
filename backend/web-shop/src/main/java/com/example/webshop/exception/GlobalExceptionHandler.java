@@ -70,10 +70,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(HttpServletRequest request, Exception ex) {
-        log.error("Unhandled exception", ex);
+        log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        // Сурова root cause за лесна диагностика на Render (генерични 500-ки криеха SQL/JPA грешки).
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String detail = root.getClass().getSimpleName()
+                + (root.getMessage() != null ? ": " + root.getMessage() : "");
+        if (detail.length() > 500) {
+            detail = detail.substring(0, 500) + "…";
+        }
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of(request, HttpStatus.INTERNAL_SERVER_ERROR,
-                        "An unexpected error occurred. Please try again later."));
+                .body(ErrorResponse.of(request, HttpStatus.INTERNAL_SERVER_ERROR, detail));
     }
 }
