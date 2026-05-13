@@ -29,7 +29,7 @@ export function useShopAuth({
   setReviews,
 }: Params) {
   const t: T = translations[language] || translations["bg"];
-  const AUTH_TIMEOUT_MS = 240000;
+  const AUTH_TIMEOUT_MS = 30000; // 30 seconds instead of 4 minutes
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -83,9 +83,10 @@ export function useShopAuth({
     };
 
     // auth + DB-related endpoint; изпълняват се паралелно за по-бърз cold-start warm-up.
+    // Reduced timeout from 25s to 8s for faster feedback
     await Promise.allSettled([
-      warm(`${API_BASE}/auth/health`, 25000),
-      warm(`${API_BASE}/items/list`, 25000),
+      warm(`${API_BASE}/auth/health`, 8000),
+      warm(`${API_BASE}/items/list`, 8000),
     ]);
   }, []);
 
@@ -233,7 +234,8 @@ export function useShopAuth({
               : "Этот email уже используется. Пожалуйста, используйте другой email."
         );
       } else {
-        setError(er.message || String(err) || t.errorRegistration);
+        const errorMsg = er.message || (err instanceof Error ? err.message : "Unknown error");
+        setError(typeof errorMsg === "string" ? errorMsg : t.errorRegistration);
       }
     } finally {
       setIsRegistering(false);
@@ -321,7 +323,8 @@ export function useShopAuth({
               : "Неверный email или пароль."
         );
       } else {
-        setError(er.message || String(err) || t.errorLogin);
+        const errorMsg = er.message || (err instanceof Error ? err.message : "Unknown error");
+        setError(typeof errorMsg === "string" ? errorMsg : t.errorLogin);
       }
     } finally {
       setIsLoggingIn(false);

@@ -11,7 +11,7 @@ export function useLoadItems(
   const loadItems = useCallback(() => {
     const tryFetch = (url: string) =>
       fetch(url).then((res) => {
-        if (!res.ok) throw { status: res.status };
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       });
 
@@ -44,10 +44,10 @@ export function useLoadItems(
         });
       })
       .catch((err) => {
-        const message = err?.message || String(err);
+        const message = err instanceof Error ? err.message : String(err);
         const friendlyMessage = typeof message === "string" && message.startsWith("HTTP")
           ? "Неуспешно зареждане на обявите. Опитайте отново по-късно."
-          : message;
+          : typeof message === "string" ? message : "Възникна грешка при зареждане";
         setError(friendlyMessage);
       });
   }, [setSelectedItem, setError]);

@@ -567,7 +567,8 @@ function App() {
           ? "Request took too long. Render is warming up – open the home page, wait about 1 minute, then try creating the listing again."
           : "Запрос занял слишком много времени. Render прогревается – откройте главную страницу, подождите около 1 минуты, затем попробуйте снова создать объявление.");
       } else {
-        setError(e?.message || String(err));
+        const errorMsg = e?.message || (err instanceof Error ? err.message : "Unknown error");
+        setError(typeof errorMsg === "string" ? errorMsg : "An error occurred");
       }
     } finally {
       setIsCreatingListing(false);
@@ -1019,7 +1020,8 @@ function App() {
       await loadAllOrders();
       setMessage(t.orderStatusUpdated);
     } catch (err) {
-      setError(String(err));
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(typeof errorMsg === "string" ? errorMsg : "An error occurred");
     }
   };
 
@@ -1159,7 +1161,8 @@ function App() {
           ? "Cannot connect to server. Please check your internet connection and try again." 
           : "Не удается подключиться к серверу. Пожалуйста, проверьте интернет-соединение и попробуйте снова.");
       } else {
-        setError(err.message || String(err) || t.errorSendAnswer);
+        const errorMsg = err?.message || (err instanceof Error ? err.message : "Unknown error");
+        setError(typeof errorMsg === "string" ? errorMsg : t.errorSendAnswer);
       }
     }
   };
@@ -1217,7 +1220,8 @@ function App() {
         await loadAllOrders();
       }
     } catch (err) {
-      setError(String(err));
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(typeof errorMsg === "string" ? errorMsg : "An error occurred");
     }
   };
 
@@ -1249,7 +1253,8 @@ function App() {
       setReviewRating(5);
       setMessage(t.successReviewAdded);
     } catch (err) {
-      setError(String(err));
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(typeof errorMsg === "string" ? errorMsg : "An error occurred");
     }
   };
 
@@ -1301,7 +1306,8 @@ function App() {
         // Игнорирай – снимката е качена, може да се види при следващо отваряне
       }
     } catch (err) {
-      setError(String(err));
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(typeof errorMsg === "string" ? errorMsg : "An error occurred");
     }
   };
 
