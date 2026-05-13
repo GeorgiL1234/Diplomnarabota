@@ -293,34 +293,7 @@ function App() {
         throw new Error(errorMessage || "Failed to complete payment");
       }
       
-      console.log("Payment completed successfully");
-
-      // Стъпка 3: Активирай VIP статуса
-      const activateVipRes = await fetch(`${API_BASE}/vip/activate`, {
-        method: "POST",
-        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
-        body: JSON.stringify({
-          ownerEmail: loggedInEmail,
-          itemId: pendingVipItemId,
-        }),
-      });
-
-      if (!activateVipRes.ok) {
-        const errorText = await activateVipRes.text();
-        console.error("Failed to activate VIP:", activateVipRes.status, errorText);
-        let errorMessage = errorText;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorJson.message || errorText;
-        } catch {
-          // Not JSON, use as is
-        }
-        throw new Error(errorMessage || "Failed to activate VIP");
-      }
-      
-      console.log("VIP activated successfully");
-
-      console.log("VIP payment completed successfully");
+      console.log("Payment completed successfully – VIP status activated by /vip-payment/complete");
       
       // Успешно плащане и активиране на VIP
       setMessage(language === "bg" 
@@ -982,31 +955,18 @@ function App() {
     }
   };
 
-  // Активиране на VIP
+  // Активиране на VIP – винаги минава през payment flow (VIP не е безплатен).
+  // Само отваря модала; самата активация се случва в handleVipPayment след
+  // успешно /vip-payment/create + /vip-payment/complete.
   const activateVip = async (itemId: number) => {
     if (!loggedInEmail) {
       setError(t.errorMustLogin);
       return;
     }
-    try {
-      const res = await fetch(`${API_BASE}/vip/activate`, {
-        method: "POST",
-        headers: withAuth({ "Content-Type": "application/json; charset=UTF-8" }),
-        body: JSON.stringify({ ownerEmail: loggedInEmail, itemId }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || t.errorActivateVip);
-      }
-      await loadItems();
-      if (selectedItem && selectedItem.id === itemId) {
-        const updated = await fetch(`${API_BASE}/items/${itemId}`).then(r => r.json());
-        setSelectedItem(updated);
-      }
-      setMessage(t.successVipActivated);
-    } catch (err: any) {
-      setError(err.message || t.errorActivateVip);
-    }
+    setError(null);
+    setMessage(null);
+    setPendingVipItemId(itemId);
+    setShowVipPayment(true);
   };
 
   // Обновяване на статус на поръчка (само за продавачи)
