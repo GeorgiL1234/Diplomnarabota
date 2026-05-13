@@ -15,7 +15,10 @@ public class Item {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String title;
+    
+    @Column(nullable = false)
     private String description;
 
     @Column(nullable = false, precision = 19, scale = 4)

@@ -460,11 +460,12 @@ function App() {
             : "Image is too large. Please select a smaller image.");
         }
         let errMsg = t.errorCreateListing;
+        console.error("Item creation failed:", { status: res.status, responseText: errorText });
         try {
           const j = JSON.parse(errorText);
-          errMsg = j.error || j.message || errMsg;
+          errMsg = j.error || j.message || errorText || errMsg;
         } catch {
-          if (errorText) errMsg = errorText;
+          errMsg = errorText || errMsg;
         }
         throw new Error(errMsg);
       }

@@ -42,6 +42,14 @@ public class ItemController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Item data is required");
         }
 
+        logger.info("Received item creation request: title='{}', description='{}', price={}, ownerEmail='{}', category='{}', paymentMethod='{}'",
+                item.getTitle(), 
+                item.getDescription() != null ? item.getDescription().substring(0, Math.min(50, item.getDescription().length())) : "null",
+                item.getPrice(),
+                item.getOwnerEmail(),
+                item.getCategory(),
+                item.getPaymentMethod());
+
         if (item.getTitle() == null || item.getTitle().trim().isEmpty()) {
             logger.error("Create item attempt with empty title");
             throw new ApiException(HttpStatus.BAD_REQUEST, "Title is required");
@@ -66,13 +74,18 @@ public class ItemController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Owner email is required");
         }
 
-        logger.info("Creating item: title={}, ownerEmail={}, category={}",
-                item.getTitle(), item.getOwnerEmail(), item.getCategory());
+        try {
+            logger.info("Creating item: title={}, ownerEmail={}, category={}",
+                    item.getTitle(), item.getOwnerEmail(), item.getCategory());
 
-        Item createdItem = itemService.create(item);
-        logger.info("Item created successfully with ID: {}", createdItem.getId());
+            Item createdItem = itemService.create(item);
+            logger.info("Item created successfully with ID: {}", createdItem.getId());
 
-        return createdItem;
+            return createdItem;
+        } catch (Exception ex) {
+            logger.error("Error creating item", ex);
+            throw ex;
+        }
     }
 
     /** Health check – използвай /items/health-check (не /ping – конфликт с /{id}) */
