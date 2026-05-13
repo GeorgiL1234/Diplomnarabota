@@ -156,39 +156,27 @@ export function ListingsSection({
         />
 
         {!showCreateForm && (
-          <>
-            <div className="category-filter">
-              <label htmlFor="main-category-filter">
-                <strong>{t.category}</strong>
-                <select
-                  id="main-category-filter"
-                  name="category"
-                  value={selectedCategory}
-                  onChange={(e) => onCategoryChange(e.target.value)}
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {getCategoryLabel(cat, t)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <MarketplaceFilters
-              query={query}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-              sortBy={sortBy}
-              showSold={showSold}
-              resultCount={resultCount}
-              onQueryChange={onQueryChange}
-              onMinPriceChange={onMinPriceChange}
-              onMaxPriceChange={onMaxPriceChange}
-              onSortByChange={onSortByChange}
-              onShowSoldChange={onShowSoldChange}
-              onClear={onClearFilters}
-            />
-          </>
+          <MarketplaceFilters
+            query={query}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            sortBy={sortBy}
+            showSold={showSold}
+            resultCount={resultCount}
+            onQueryChange={onQueryChange}
+            onMinPriceChange={onMinPriceChange}
+            onMaxPriceChange={onMaxPriceChange}
+            onSortByChange={onSortByChange}
+            onShowSoldChange={onShowSoldChange}
+            onClear={onClearFilters}
+            selectedCategory={selectedCategory}
+            categoryOptions={CATEGORIES.map((cat) => ({
+              value: cat,
+              label: getCategoryLabel(cat, t),
+            }))}
+            categoryLabel={t.category}
+            onCategoryChange={onCategoryChange}
+          />
         )}
 
         {view === "mine" && !loggedInEmail && <p className="info-text">{t.loginToSeeListings}</p>}
