@@ -57,8 +57,13 @@ public class SchemaMigrator implements ApplicationRunner {
 
         for (String sql : statements) {
             try {
-                jdbc.execute(sql);
-                log.info("Schema migration applied: {}", sql);
+                if (sql.startsWith("UPDATE ")) {
+                    int rows = jdbc.update(sql);
+                    log.info("Schema migration applied ({} rows): {}", rows, sql);
+                } else {
+                    jdbc.execute(sql);
+                    log.info("Schema migration applied: {}", sql);
+                }
             } catch (Exception e) {
                 // Don't crash the app if the item table doesn't exist yet (fresh install)
                 // or if a dialect doesn't recognize a statement – the JPA layer will

@@ -97,7 +97,7 @@ public class ItemController {
     /** Версия на backend */
     @GetMapping("/version")
     public ResponseEntity<java.util.Map<String, String>> version() {
-        return ResponseEntity.ok(java.util.Map.of("build", "v5-may2026"));
+        return ResponseEntity.ok(java.util.Map.of("build", "v6-may2026-base64"));
     }
 
     @GetMapping
